@@ -1,0 +1,32 @@
+Program:
+Inputs: 
+Graph ID: 7925997907151632680
+  BasicBlock: %0, ID: 7925997907151632680
+  Count: 1
+  Loop: %4, ID: 11915975834988048509
+  Loop Count: loop_count_%4
+  Guard Graph:
+    BasicBlock: %4, ID: 11915975834988048509
+    Count: ((loop_count_%4 + 1) * 1)
+  Body Graph:
+    BasicBlock: %7, ID: 958603886489710010
+    Count: (loop_count_%4 * 1)
+    Loop: %8, ID: 10692436557701140382
+    Loop Count: loop_count_%8
+    Guard Graph:
+      BasicBlock: %8, ID: 10692436557701140382
+      Count: ((loop_count_%8 + 1) * (loop_count_%4 * 1))
+    Body Graph:
+      BasicBlock: %11, ID: 16412034088848145755
+      Count: (loop_count_%8 * (loop_count_%4 * 1))
+      BasicBlock: %12, ID: 1676742226558584152
+      Count: (loop_count_%8 * (loop_count_%4 * 1))
+      Graph is null
+    BasicBlock: %15, ID: 16412038486894658599
+    Count: (loop_count_%4 * 1)
+    BasicBlock: %16, ID: 3127612423592959694
+    Count: (loop_count_%4 * 1)
+    Graph is null
+  BasicBlock: %19, ID: 4177459266626202730
+  Count: 1
+  Graph is null

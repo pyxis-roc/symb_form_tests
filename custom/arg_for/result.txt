@@ -1,0 +1,40 @@
+Program:
+Inputs: %0 %1 
+  BasicBlock: %2
+  Count: 1
+  Loop: %9
+  Loop Count: loop_count_%9
+  Guard Graph:
+    BasicBlock: %9
+    Count: ((loop_count_%9 + 1) * 1)
+  Body Graph:
+    BasicBlock: %13
+    Count: (loop_count_%9 * 1)
+    Loop: %14
+    Loop Count: loop_count_%14
+    Guard Graph:
+      BasicBlock: %14
+      Count: ((loop_count_%14 + 1) * (loop_count_%9 * 1))
+    Body Graph:
+      Branch: %19
+      True Ratio: TR_%19
+      False Ratio: (1 - TR_%19)
+      True Side Graph:
+        BasicBlock: %23
+        Count: (TR_%19 * (loop_count_%14 * (loop_count_%9 * 1)))
+        Graph is null
+      False Side Graph:
+        Graph is null
+      BasicBlock: %26
+      Count: (loop_count_%14 * (loop_count_%9 * 1))
+      BasicBlock: %27
+      Count: (loop_count_%14 * (loop_count_%9 * 1))
+      Graph is null
+    BasicBlock: %30
+    Count: (loop_count_%9 * 1)
+    BasicBlock: %31
+    Count: (loop_count_%9 * 1)
+    Graph is null
+  BasicBlock: %34
+  Count: 1
+  Graph is null

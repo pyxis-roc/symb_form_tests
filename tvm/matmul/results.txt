@@ -1,0 +1,32 @@
+Program:
+Inputs: %M %N %K %T_matmul_NN %A %B 
+  Branch: %entry
+  True Ratio: TR_%entry
+  False Ratio: (1 - TR_%entry)
+  True Side Graph:
+    BasicBlock: %for_begin_i1.preheader.us.us.preheader
+    Count: (TR_%entry * 1)
+    Loop: %for_begin_i1.preheader.us.us
+    Loop Count: scAdd(-1, scZeroExt(%M))
+    Guard Graph:
+      BasicBlock: %for_begin_i1.preheader.us.us
+      Count: (scAdd(-1, scZeroExt(%M)) * (TR_%entry * 1))
+    Body Graph:
+      BasicBlock: %for_begin_i1.preheader.us.us
+      Count: (scAdd(-1, scZeroExt(%M)) * (TR_%entry * 1))
+      Loop: %if_end.us.us.us.peel
+      Loop Count: scAdd(-1, scZeroExt(%N))
+      Guard Graph:
+        BasicBlock: %if_end.us.us.us.peel
+        Count: (scAdd(-1, scZeroExt(%N)) * (scAdd(-1, scZeroExt(%M)) * (TR_%entry * 1)))
+      Body Graph:
+        BasicBlock: %if_end.us.us.us.peel
+        Count: (scAdd(-1, scZeroExt(%N)) * (scAdd(-1, scZeroExt(%M)) * (TR_%entry * 1)))
+        Graph is null
+      Graph is null
+    Graph is null
+  False Side Graph:
+    Graph is null
+  BasicBlock: %for_end_i0
+  Count: 1
+  Graph is null

@@ -1,0 +1,17 @@
+Program:
+Inputs: 
+Graph ID: 12196194672786163811
+  BasicBlock: %0, ID: 12196194672786163811
+  Count: 1
+  Loop: %3, ID: 4344529667281583801
+  Loop Count: loop_count_%3
+  Guard Graph:
+    BasicBlock: %3, ID: 4344529667281583801
+    Count: (loop_count_%3 + 1)
+  Body Graph:
+    BasicBlock: %6, ID: 16938027311262008707
+    Count: (loop_count_%3 * 1)
+    Graph is null
+  BasicBlock: %9, ID: 1664336221771008728
+  Count: 1
+  Graph is null

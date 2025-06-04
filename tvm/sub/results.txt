@@ -1,0 +1,32 @@
+Program:
+Inputs: %M %N %T_subtract %A %B 
+  Branch: %entry
+  True Ratio: TR_%entry
+  False Ratio: (1 - TR_%entry)
+  True Side Graph:
+    BasicBlock: %for_begin_ax1.preheader.us.preheader
+    Count: (TR_%entry * 1)
+    Loop: %for_begin_ax1.preheader.us
+    Loop Count: scAdd(-1, scZeroExt(%M))
+    Guard Graph:
+      BasicBlock: %for_begin_ax1.preheader.us
+      Count: (scAdd(-1, scZeroExt(%M)) * (TR_%entry * 1))
+    Body Graph:
+      BasicBlock: %for_begin_ax1.preheader.us
+      Count: (scAdd(-1, scZeroExt(%M)) * (TR_%entry * 1))
+      BasicBlock: %for_body_ax1.us.preheader
+      Count: (scAdd(-1, scZeroExt(%M)) * (TR_%entry * 1))
+      Loop: %for_body_ax1.us
+      Loop Count: scAdd(-1, scZeroExt(%N), scMul(-1,   %indvars.iv.ph = phi i64 [ 0, %for_begin_ax1.preheader.us ], [ %n.vec, %middle.block ]))
+      Guard Graph:
+        BasicBlock: %for_body_ax1.us
+        Count: ((scAdd(-1, scZeroExt(%N), scMul(-1,   %indvars.iv.ph = phi i64 [ 0, %for_begin_ax1.preheader.us ], [ %n.vec, %middle.block ])) + 1) * (scAdd(-1, scZeroExt(%M)) * (TR_%entry * 1)))
+      Body Graph:
+        Graph is null
+      Graph is null
+    Graph is null
+  False Side Graph:
+    Graph is null
+  BasicBlock: %for_end_ax0
+  Count: 1
+  Graph is null

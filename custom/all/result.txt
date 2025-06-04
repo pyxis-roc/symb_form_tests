@@ -1,0 +1,41 @@
+Program:
+Inputs: 
+Graph ID: 7925997907151632680
+  BasicBlock: %0, ID: 7925997907151632680
+  Count: 1
+  Loop: %4, ID: 11915119315429861365
+  Loop Count: loop_count_%4
+  Guard Graph:
+    BasicBlock: %4, ID: 11915119315429861365
+    Count: ((loop_count_%4 + 1) * 1)
+  Body Graph:
+    Branch: %7, ID: 3196766240807545462
+    True Ratio: true_ratio_%7
+    False Ratio: (1 - true_ratio_%7)
+    True Side Graph:
+      BasicBlock: %11, ID: 16412034088848145755
+      Count: (true_ratio_%7 * (loop_count_%4 * 1))
+      Loop: %12, ID: 11056252816901484447
+      Loop Count: loop_count_%12
+      Guard Graph:
+        BasicBlock: %12, ID: 11056252816901484447
+        Count: ((loop_count_%12 + 1) * (true_ratio_%7 * (loop_count_%4 * 1)))
+      Body Graph:
+        BasicBlock: %15, ID: 16326975358298247329
+        Count: (loop_count_%12 * (true_ratio_%7 * (loop_count_%4 * 1)))
+        Graph is null
+      BasicBlock: %18, ID: 16412887309871448266
+      Count: (true_ratio_%7 * (loop_count_%4 * 1))
+      Graph is null
+    False Side Graph:
+      BasicBlock: %19, ID: 16412887309871448266
+      Count: ((1 - true_ratio_%7) * (loop_count_%4 * 1))
+      Graph is null
+    BasicBlock: %20, ID: 16412888409383076477
+    Count: (loop_count_%4 * 1)
+    BasicBlock: %21, ID: 11594823495765448110
+    Count: (loop_count_%4 * 1)
+    Graph is null
+  BasicBlock: %24, ID: 10630691247329060412
+  Count: 1
+  Graph is null

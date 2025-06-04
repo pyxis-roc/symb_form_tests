@@ -1,0 +1,258 @@
+Program:
+Inputs: %dev_id %N %CI %H %W %A %CO %KH %KW %conv2d_nchw %W1 
+  Branch: %entry
+  True Ratio: TR_%entry
+  False Ratio: (1 - TR_%entry)
+  True Side Graph:
+    Graph is null
+  False Side Graph:
+    Branch: %for_begin_i0.preheader
+    True Ratio: TR_%for_begin_i0.preheader
+    False Ratio: (1 - TR_%for_begin_i0.preheader)
+    True Side Graph:
+      Branch: %for_begin_i1.preheader.lr.ph
+      True Ratio: TR_%for_begin_i1.preheader.lr.ph
+      False Ratio: (1 - TR_%for_begin_i1.preheader.lr.ph)
+      True Side Graph:
+        Branch: %for_begin_ff.preheader.lr.ph
+        True Ratio: TR_%for_begin_ff.preheader.lr.ph
+        False Ratio: (1 - TR_%for_begin_ff.preheader.lr.ph)
+        True Side Graph:
+          Graph is null
+        False Side Graph:
+          BasicBlock: %for_begin_ff.preheader.us.us.us.us.us.us.preheader
+          Count: ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_i1.preheader.lr.ph * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))
+          Loop: %for_begin_ff.preheader.us.us.us.us.us.us
+          Loop Count: scAdd(-1, scZeroExt(%N))
+          Guard Graph:
+            BasicBlock: %for_begin_ff.preheader.us.us.us.us.us.us
+            Count: (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_i1.preheader.lr.ph * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))
+          Body Graph:
+            BasicBlock: %for_begin_ff.preheader.us.us.us.us.us.us
+            Count: (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_i1.preheader.lr.ph * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))
+            Loop: %for_body_ff.us.us.us.us.us.us.us.us.us.us.us
+            Loop Count: scAdd(-1, scZeroExt(%CO))
+            Guard Graph:
+              BasicBlock: %for_body_ff.us.us.us.us.us.us.us.us.us.us.us
+              Count: (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_i1.preheader.lr.ph * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))
+            Body Graph:
+              BasicBlock: %for_body_ff.us.us.us.us.us.us.us.us.us.us.us
+              Count: (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_i1.preheader.lr.ph * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))
+              Loop: %for_body_yy.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+              Loop Count: scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H)))
+              Guard Graph:
+                BasicBlock: %for_body_yy.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                Count: (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_i1.preheader.lr.ph * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))))
+              Body Graph:
+                BasicBlock: %for_body_yy.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                Count: (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_i1.preheader.lr.ph * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))))
+                Loop: %for_begin_rc.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                Loop Count: scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W)))
+                Guard Graph:
+                  BasicBlock: %for_begin_rc.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                  Count: (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W))) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_i1.preheader.lr.ph * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))))
+                Body Graph:
+                  BasicBlock: %for_begin_rc.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                  Count: (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W))) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_i1.preheader.lr.ph * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))))
+                  Loop: %for_begin_ry.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                  Loop Count: scAdd(-1, scZeroExt(%CI))
+                  Guard Graph:
+                    BasicBlock: %for_begin_ry.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                    Count: (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W))) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_i1.preheader.lr.ph * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))))))
+                  Body Graph:
+                    BasicBlock: %for_begin_ry.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                    Count: (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W))) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_i1.preheader.lr.ph * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))))))
+                    Loop: %for_begin_rx.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                    Loop Count: scAdd(-1, scZeroExt(%KH))
+                    Guard Graph:
+                      BasicBlock: %for_begin_rx.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                      Count: (scAdd(-1, scZeroExt(%KH)) * (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W))) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_i1.preheader.lr.ph * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))))))
+                    Body Graph:
+                      BasicBlock: %for_begin_rx.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                      Count: (scAdd(-1, scZeroExt(%KH)) * (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W))) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_i1.preheader.lr.ph * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))))))
+                      Branch: %for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.unr-lcssa
+                      True Ratio: TR_%for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.unr-lcssa
+                      False Ratio: (1 - TR_%for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.unr-lcssa)
+                      True Side Graph:
+                        Graph is null
+                      False Side Graph:
+                        BasicBlock: %for_body_rx.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.epil
+                        Count: ((1 - TR_%for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.unr-lcssa) * (scAdd(-1, scZeroExt(%KH)) * (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W))) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_i1.preheader.lr.ph * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))))))))
+                        Graph is null
+                      Graph is null
+                    Graph is null
+                  Graph is null
+                Graph is null
+              Graph is null
+            Graph is null
+          Graph is null
+        Graph is null
+      False Side Graph:
+        BasicBlock: %for_begin_i1.preheader.us.us.us.preheader
+        Count: ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))
+        Loop: %for_begin_i1.preheader.us.us.us
+        Loop Count: scAdd(-1, scZeroExt(%N))
+        Guard Graph:
+          BasicBlock: %for_begin_i1.preheader.us.us.us
+          Count: (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))
+        Body Graph:
+          BasicBlock: %for_begin_i1.preheader.us.us.us
+          Count: (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))
+          Loop: %for_begin_i2.preheader.us.us.us.us.us
+          Loop Count: scAdd(-1, scZeroExt(%CI))
+          Guard Graph:
+            BasicBlock: %for_begin_i2.preheader.us.us.us.us.us
+            Count: (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))
+          Body Graph:
+            BasicBlock: %for_begin_i2.preheader.us.us.us.us.us
+            Count: (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))
+            Loop: %for_begin_i3.preheader.us.us.us.us.us.us
+            Loop Count: scAdd(-1, scZeroExt(scSMax(1, scAdd(2, %H))))
+            Guard Graph:
+              BasicBlock: %for_begin_i3.preheader.us.us.us.us.us.us
+              Count: (scAdd(-1, scZeroExt(scSMax(1, scAdd(2, %H)))) * (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))
+            Body Graph:
+              BasicBlock: %for_begin_i3.preheader.us.us.us.us.us.us
+              Count: (scAdd(-1, scZeroExt(scSMax(1, scAdd(2, %H)))) * (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))
+              Branch: %if_end3.us.us.us.us.us.us.peel
+              True Ratio: TR_%if_end3.us.us.us.us.us.us.peel
+              False Ratio: (1 - TR_%if_end3.us.us.us.us.us.us.peel)
+              True Side Graph:
+                Graph is null
+              False Side Graph:
+                Branch: %for_body_i3.us13.us.us.us.us.us.peel.next
+                True Ratio: TR_%for_body_i3.us13.us.us.us.us.us.peel.next
+                False Ratio: (1 - TR_%for_body_i3.us13.us.us.us.us.us.peel.next)
+                True Side Graph:
+                  Graph is null
+                False Side Graph:
+                  Loop: %for_body_i3.us13.us.us.us.us.us
+                  Loop Count: scUDiv(scAdd(-2, scMul(2, scUDiv(scAdd(-1, scZeroExt(scSMax(1, scAdd(2, %W)))), 2))), 2)
+                  Guard Graph:
+                    BasicBlock: %for_body_i3.us13.us.us.us.us.us
+                    Count: (scUDiv(scAdd(-2, scMul(2, scUDiv(scAdd(-1, scZeroExt(scSMax(1, scAdd(2, %W)))), 2))), 2) * ((1 - TR_%for_body_i3.us13.us.us.us.us.us.peel.next) * ((1 - TR_%if_end3.us.us.us.us.us.us.peel) * (scAdd(-1, scZeroExt(scSMax(1, scAdd(2, %H)))) * (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))))))
+                  Body Graph:
+                    BasicBlock: %for_body_i3.us13.us.us.us.us.us
+                    Count: (scUDiv(scAdd(-2, scMul(2, scUDiv(scAdd(-1, scZeroExt(scSMax(1, scAdd(2, %W)))), 2))), 2) * ((1 - TR_%for_body_i3.us13.us.us.us.us.us.peel.next) * ((1 - TR_%if_end3.us.us.us.us.us.us.peel) * (scAdd(-1, scZeroExt(scSMax(1, scAdd(2, %H)))) * (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))))))
+                    Branch: %if_end3.us.us.us.us.us.us
+                    True Ratio: TR_%if_end3.us.us.us.us.us.us
+                    False Ratio: (1 - TR_%if_end3.us.us.us.us.us.us)
+                    True Side Graph:
+                      BasicBlock: %if_then2.us.us.us.us.us.us.1
+                      Count: (TR_%if_end3.us.us.us.us.us.us * (scUDiv(scAdd(-2, scMul(2, scUDiv(scAdd(-1, scZeroExt(scSMax(1, scAdd(2, %W)))), 2))), 2) * ((1 - TR_%for_body_i3.us13.us.us.us.us.us.peel.next) * ((1 - TR_%if_end3.us.us.us.us.us.us.peel) * (scAdd(-1, scZeroExt(scSMax(1, scAdd(2, %H)))) * (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))))))
+                      Graph is null
+                    False Side Graph:
+                      Graph is null
+                    Graph is null
+                  Graph is null
+                Branch: %for_begin_i3.for_end_i3_crit_edge.us.us.us.us.us.us.loopexit.unr-lcssa
+                True Ratio: TR_%for_begin_i3.for_end_i3_crit_edge.us.us.us.us.us.us.loopexit.unr-lcssa
+                False Ratio: (1 - TR_%for_begin_i3.for_end_i3_crit_edge.us.us.us.us.us.us.loopexit.unr-lcssa)
+                True Side Graph:
+                  Graph is null
+                False Side Graph:
+                  Branch: %for_body_i3.us13.us.us.us.us.us.epil
+                  True Ratio: TR_%for_body_i3.us13.us.us.us.us.us.epil
+                  False Ratio: (1 - TR_%for_body_i3.us13.us.us.us.us.us.epil)
+                  True Side Graph:
+                    Graph is null
+                  False Side Graph:
+                    BasicBlock: %if_then2.us.us.us.us.us.us.epil
+                    Count: ((1 - TR_%for_body_i3.us13.us.us.us.us.us.epil) * ((1 - TR_%for_begin_i3.for_end_i3_crit_edge.us.us.us.us.us.us.loopexit.unr-lcssa) * ((1 - TR_%if_end3.us.us.us.us.us.us.peel) * (scAdd(-1, scZeroExt(scSMax(1, scAdd(2, %H)))) * (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))))))
+                    Graph is null
+                  BasicBlock: %if_end3.us.us.us.us.us.us.epil
+                  Count: ((1 - TR_%for_begin_i3.for_end_i3_crit_edge.us.us.us.us.us.us.loopexit.unr-lcssa) * ((1 - TR_%if_end3.us.us.us.us.us.us.peel) * (scAdd(-1, scZeroExt(scSMax(1, scAdd(2, %H)))) * (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))))
+                  Graph is null
+                Graph is null
+              Graph is null
+            Graph is null
+          Graph is null
+        Branch: %for_begin_nn.preheader
+        True Ratio: TR_%for_begin_nn.preheader
+        False Ratio: (1 - TR_%for_begin_nn.preheader)
+        True Side Graph:
+          Branch: %for_begin_ff.preheader.lr.ph
+          True Ratio: TR_%for_begin_ff.preheader.lr.ph
+          False Ratio: (1 - TR_%for_begin_ff.preheader.lr.ph)
+          True Side Graph:
+            Graph is null
+          False Side Graph:
+            BasicBlock: %for_begin_ff.preheader.us.us.us.us.us.us.preheader
+            Count: ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_nn.preheader * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))
+            Loop: %for_begin_ff.preheader.us.us.us.us.us.us
+            Loop Count: scAdd(-1, scZeroExt(%N))
+            Guard Graph:
+              BasicBlock: %for_begin_ff.preheader.us.us.us.us.us.us
+              Count: (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_nn.preheader * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))
+            Body Graph:
+              BasicBlock: %for_begin_ff.preheader.us.us.us.us.us.us
+              Count: (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_nn.preheader * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))
+              Loop: %for_body_ff.us.us.us.us.us.us.us.us.us.us.us
+              Loop Count: scAdd(-1, scZeroExt(%CO))
+              Guard Graph:
+                BasicBlock: %for_body_ff.us.us.us.us.us.us.us.us.us.us.us
+                Count: (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_nn.preheader * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))))
+              Body Graph:
+                BasicBlock: %for_body_ff.us.us.us.us.us.us.us.us.us.us.us
+                Count: (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_nn.preheader * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))))
+                Loop: %for_body_yy.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                Loop Count: scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H)))
+                Guard Graph:
+                  BasicBlock: %for_body_yy.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                  Count: (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_nn.preheader * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))))
+                Body Graph:
+                  BasicBlock: %for_body_yy.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                  Count: (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_nn.preheader * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))))
+                  Loop: %for_begin_rc.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                  Loop Count: scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W)))
+                  Guard Graph:
+                    BasicBlock: %for_begin_rc.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                    Count: (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W))) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_nn.preheader * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))))))
+                  Body Graph:
+                    BasicBlock: %for_begin_rc.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                    Count: (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W))) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_nn.preheader * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))))))
+                    Loop: %for_begin_ry.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                    Loop Count: scAdd(-1, scZeroExt(%CI))
+                    Guard Graph:
+                      BasicBlock: %for_begin_ry.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                      Count: (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W))) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_nn.preheader * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))))))
+                    Body Graph:
+                      BasicBlock: %for_begin_ry.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                      Count: (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W))) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_nn.preheader * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))))))
+                      Loop: %for_begin_rx.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                      Loop Count: scAdd(-1, scZeroExt(%KH))
+                      Guard Graph:
+                        BasicBlock: %for_begin_rx.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                        Count: (scAdd(-1, scZeroExt(%KH)) * (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W))) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_nn.preheader * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))))))))
+                      Body Graph:
+                        BasicBlock: %for_begin_rx.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                        Count: (scAdd(-1, scZeroExt(%KH)) * (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W))) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_nn.preheader * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1)))))))))))
+                        Branch: %for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.unr-lcssa
+                        True Ratio: TR_%for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.unr-lcssa
+                        False Ratio: (1 - TR_%for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.unr-lcssa)
+                        True Side Graph:
+                          Graph is null
+                        False Side Graph:
+                          BasicBlock: %for_body_rx.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.epil
+                          Count: ((1 - TR_%for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.unr-lcssa) * (scAdd(-1, scZeroExt(%KH)) * (scAdd(-1, scZeroExt(%CI)) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KW), %W))) * (scAdd(-1, scZeroExt(scAdd(3, scMul(-1, %KH), %H))) * (scAdd(-1, scZeroExt(%CO)) * (scAdd(-1, scZeroExt(%N)) * ((1 - TR_%for_begin_ff.preheader.lr.ph) * (TR_%for_begin_nn.preheader * ((1 - TR_%for_begin_i1.preheader.lr.ph) * (TR_%for_begin_i0.preheader * ((1 - TR_%entry) * 1))))))))))))
+                          Graph is null
+                        Graph is null
+                      Graph is null
+                    Graph is null
+                  Graph is null
+                Graph is null
+              Graph is null
+            Graph is null
+          Graph is null
+        False Side Graph:
+          Graph is null
+        Graph is null
+      Graph is null
+    False Side Graph:
+      Graph is null
+    BasicBlock: %for_end_nn
+    Count: ((1 - TR_%entry) * 1)
+    Graph is null
+  BasicBlock: %common.ret
+  Count: 1
+  Graph is null

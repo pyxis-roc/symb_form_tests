@@ -1,0 +1,28 @@
+Program:
+Inputs: %K %N %T_take %A %M %indices 
+  Branch: %entry
+  True Ratio: TR_%entry
+  False Ratio: (1 - TR_%entry)
+  True Side Graph:
+    Branch: %for_begin_ax1.preheader.lr.ph
+    True Ratio: TR_%for_begin_ax1.preheader.lr.ph
+    False Ratio: (1 - TR_%for_begin_ax1.preheader.lr.ph)
+    True Side Graph:
+      BasicBlock: %for_begin_ax1.preheader.us.preheader
+      Count: (TR_%for_begin_ax1.preheader.lr.ph * (TR_%entry * 1))
+      Loop: %for_begin_ax1.preheader.us
+      Loop Count: scAdd(-1, scZeroExt(%K))
+      Guard Graph:
+        BasicBlock: %for_begin_ax1.preheader.us
+        Count: ((scAdd(-1, scZeroExt(%K)) + 1) * (TR_%for_begin_ax1.preheader.lr.ph * (TR_%entry * 1)))
+      Body Graph:
+        Graph is null
+      Graph is null
+    False Side Graph:
+      Graph is null
+    Graph is null
+  False Side Graph:
+    Graph is null
+  BasicBlock: %for_end_ax0
+  Count: 1
+  Graph is null
