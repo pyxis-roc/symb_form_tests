@@ -26,38 +26,87 @@ def parse_symb(file_path):
             res[name] = int(basic_graph['guessed_count'])
     return res
 
-def compare(instr_result, symb_result):
-
+def compare_results(instr_result, symb_result):
+    results = []
     matched = 0
     total = 0
 
     for name in symb_result:
         if name not in instr_result:
-            print(f"Warning: {name} is not in instr results")
+            results.append({
+                "name": name,
+                "status": "missing_instr",
+                "guessed_count": symb_result[name],
+                "exact_count": None,
+                "difference": None,
+                "message": f"Warning: {name} is not in instr results"
+            })
             continue
 
         guessed_count = symb_result[name]
         exact_count = instr_result[name]
 
         if guessed_count is None:
-            print(f"Warning: {name} has no guessed count")
+            results.append({
+                "name": name,
+                "status": "missing_guessed",
+                "guessed_count": None,
+                "exact_count": exact_count,
+                "difference": None,
+                "message": f"Warning: {name} has no guessed count"
+            })
             continue
 
         if exact_count is None:
-            print(f"Warning: {name} has no exact count")
+            results.append({
+                "name": name,
+                "status": "missing_exact",
+                "guessed_count": guessed_count,
+                "exact_count": None,
+                "difference": None,
+                "message": f"Warning: {name} has no exact count"
+            })
             continue
 
-        if guessed_count == exact_count:
-            print(f"Matched: {name} = {exact_count}")
-            matched += 1
-        else:
-            print(f"Mismatch: {name} = {exact_count}, guessed = {guessed_count}")
-            print(f"  Difference: {guessed_count - exact_count} (guessed - exact)")
-
-        print()
         total += 1
+        if guessed_count == exact_count:
+            matched += 1
+            results.append({
+                "name": name,
+                "status": "matched",
+                "guessed_count": guessed_count,
+                "exact_count": exact_count,
+                "difference": 0,
+                "message": None
+            })
+        else:
+            results.append({
+                "name": name,
+                "status": "mismatch",
+                "guessed_count": guessed_count,
+                "exact_count": exact_count,
+                "difference": guessed_count - exact_count,
+                "message": None
+            })
 
-    print(f"Matched: {matched}/{total}")
+    summary = {"matched": matched, "total": total}
+    return results, summary
+
+def print_compare_results(results, summary):
+    for result in results:
+        if result["status"] == "missing_instr":
+            print(result["message"])
+        elif result["status"] == "missing_guessed":
+            print(result["message"])
+        elif result["status"] == "missing_exact":
+            print(result["message"])
+        elif result["status"] == "matched":
+            print(f"Matched: {result['name']} = {result['exact_count']}")
+        elif result["status"] == "mismatch":
+            print(f"Mismatch: {result['name']} = {result['exact_count']}, guessed = {result['guessed_count']}")
+            print(f"  Difference: {result['difference']} (guessed - exact)")
+        print()
+    print(f"Matched: {summary['matched']}/{summary['total']}")
 
 def main():
     parser = argparse.ArgumentParser(description="Compare instruction counts with symbolic results.")
@@ -70,7 +119,8 @@ def main():
     with open(args.symb, 'r') as symb_file:
         symb_result = parse_symb(symb_file)
         
-    compare(instr_result, symb_result)
+    results, summary = compare_results(instr_result, symb_result)
+    print_compare_results(results, summary)
 
 if __name__ == "__main__":
     main()

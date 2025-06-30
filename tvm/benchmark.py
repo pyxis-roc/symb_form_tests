@@ -6,11 +6,12 @@ import numpy as np
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../script-link')))
 
 from symb_eval import symb_eval, parse_basic_graphs, format_evaluated_graphs
-from compare import parse_instr, parse_symb, compare
+from compare import parse_instr, parse_symb, compare_results, print_compare_results
 import subprocess
 import json
 import tempfile
 from abc import ABC, abstractmethod
+from time import sleep
 
 class TVMRunner(ABC):
     @abstractmethod
@@ -31,8 +32,12 @@ class BenchSpec(ABC):
         """Get the TVM runner instance."""
 
     @abstractmethod
-    def get_cwd(self) -> str:
+    def get_directory(self) -> str:
         """Get the current working directory for the benchmark."""
+    
+    @abstractmethod
+    def get_name(self) -> str:
+        """Get the name of the benchmark."""
 
 
 def benchmark(spec: BenchSpec):
@@ -41,17 +46,21 @@ def benchmark(spec: BenchSpec):
     input = spec.get_input()
     kernel_llvm_path = spec.get_kernel_llvm_path()
     tvm_runner = spec.get_tvm_runner()
-    cwd = spec.get_cwd()
+    cwd = spec.get_directory()
+    name = spec.get_name()
 
     os.chdir(cwd)
 
     def get_exact_count():
         # compile the kernel with instrumentation
-        subprocess.run(['instrGen', kernel_llvm_path, 'conv-instr.so'], check=True)
-        module = tvm.runtime.load_module("conv-instr.so")
+        kernel_base = os.path.splitext(os.path.basename(kernel_llvm_path))[0]
+        so_name = f"{kernel_base}-instr.so"
+        subprocess.run(['instrGen', kernel_llvm_path, so_name], check=True, cwd=cwd)
+        module = tvm.runtime.load_module(os.path.join(cwd, so_name))
 
         # run the module with the input data
         tvm_runner.run(module, input)
+        del module
 
         # handle profiling results
         profraw_files = [f for f in os.listdir('.') if f.endswith('.profraw')]
@@ -61,10 +70,11 @@ def benchmark(spec: BenchSpec):
             raise RuntimeError("No profraw file found. Make sure the instrumented run was successful.")
 
         if profraw_file:
-            with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".csv") as outfile:
+            with tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".csv") as outfile: 
                 instr_results_path = outfile.name
+
                 subprocess.run(
-                    ["getBBCounts", "conv.ll", profraw_file],
+                    ["getBBCounts", kernel_llvm_path, profraw_file],
                     stdout=outfile,
                     check=True
                 )
@@ -104,7 +114,12 @@ def benchmark(spec: BenchSpec):
     instr_counts = get_exact_count()
     symb_counts = get_symb_count()
 
-    compare(instr_counts, symb_counts)
+    # Compare results
+    results, summary = compare_results(instr_counts, symb_counts)
+    
+    print(f"Benchmark: {name}")
+    print_compare_results(results, summary)
+
 
 
 class ConvBenchSpec(BenchSpec):
@@ -123,8 +138,8 @@ class ConvBenchSpec(BenchSpec):
     def get_kernel_llvm_path(self) -> str:
         return os.path.abspath(os.path.join(os.path.dirname(__file__), "./conv/conv.ll"))
     
-    def get_cwd(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./conv/"))
+    def get_directory(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./conv"))
 
     class ConvRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -140,8 +155,8 @@ class ConvBenchSpec(BenchSpec):
             A_np = np.random.randn(N, CI, H, W).astype("float32")
             Wt_np = np.random.randn(CO, CI, KH, KW).astype("float32")
             # Output shape for conv2d with stride=1, padding=0
-            OH = H - KH + 1
-            OW = W - KW + 1
+            OH = H - KH + 3
+            OW = W - KW + 3
             C_np = np.zeros((N, CO, OH, OW), dtype="float32")
 
             A = tvm.nd.array(A_np, ctx)
@@ -153,8 +168,11 @@ class ConvBenchSpec(BenchSpec):
                 func(A, Wt, C)
             except:
                 pass
-    
+
     def get_tvm_runner(self) -> TVMRunner:
         return self.ConvRunner()
+
+    def get_name(self):
+        return "conv2d_benchmark"
 
 benchmark(ConvBenchSpec())
