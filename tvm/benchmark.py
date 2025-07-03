@@ -89,8 +89,10 @@ def benchmark(spec: BenchSpec):
         symb_json_file = tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json"); 
         symb_json_path = symb_json_file.name
 
+        kernel_base_name = os.path.splitext(os.path.basename(kernel_llvm_path))[0]
+        func_name = kernel_base_name + "_compute_"
         subprocess.run(
-            ['symb-viewer', kernel_llvm_path, 'conv_compute_', f'-json={symb_json_path}'],
+            ['symb-viewer', kernel_llvm_path, func_name, f'-json={symb_json_path}'],
             check=True
         )
 
@@ -119,7 +121,6 @@ def benchmark(spec: BenchSpec):
     
     print(f"Benchmark: {name}")
     print_compare_results(results, summary)
-
 
 
 class ConvBenchSpec(BenchSpec):
@@ -164,10 +165,8 @@ class ConvBenchSpec(BenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["conv"]
-            try:
-                func(A, Wt, C)
-            except:
-                pass
+            func(A, Wt, C)
+
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.ConvRunner()
@@ -175,4 +174,303 @@ class ConvBenchSpec(BenchSpec):
     def get_name(self):
         return "conv2d_benchmark"
 
-benchmark(ConvBenchSpec())
+class MatmulBenchSpec(BenchSpec):
+
+    def get_input(self) -> dict:
+        return {
+            "%M": 128,  # Rows of A and C
+            "%N": 128,  # Columns of B and C
+            "%K": 128   # Columns of A, Rows of B
+        }
+
+    def get_kernel_llvm_path(self) -> str:
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./matmul/matmul.ll"))
+
+    def get_directory(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./matmul"))
+
+    class MatmulRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("%M", 128)
+            N = input.get("%N", 128)
+            K = input.get("%K", 128)
+
+            A_np = np.random.randn(M, K).astype("float32")
+            B_np = np.random.randn(K, N).astype("float32")
+            C_np = np.zeros((M, N), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            B = tvm.nd.array(B_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["matmul"]
+            func(A, B, C)
+
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.MatmulRunner()
+
+    def get_name(self):
+        return "matmul_benchmark"
+
+
+class ConcatBenchSpec(BenchSpec):
+
+    def get_input(self) -> dict:
+        return {
+            "%M": 128,
+            "%N": 128,  # Number of tensors to concatenate
+        }
+
+    def get_kernel_llvm_path(self) -> str:
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./concat/concat.ll"))
+
+    def get_directory(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./concat"))
+
+    class ConcatRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("%M", 128)
+            N = input.get("%N", 128)  # Number of tensors to concatenate
+
+            # Create N tensors of shape (M,) and concatenate along axis=0
+            A = tvm.nd.array(np.random.randn(M, N).astype("float32"), ctx)
+            B = tvm.nd.array(np.random.randn(M, N).astype("float32"), ctx)
+            C = tvm.nd.array(np.zeros((M*2, N), dtype="float32"), ctx)
+
+            func = module["concat"]
+            func(A, B, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.ConcatRunner()
+
+    def get_name(self):
+        return "concat_benchmark"
+
+
+class GatherBenchSpec(BenchSpec):
+
+    def get_input(self) -> dict:
+        return {
+            "%M": 128,  # Number of elements in the input tensor
+            "%N": 64,   # Number of indices to gather
+            "%K": 64
+        }
+
+    def get_kernel_llvm_path(self) -> str:
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./gather/gather.ll"))
+
+    def get_directory(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./gather"))
+
+    class GatherRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("%M", 128)
+            N = input.get("%N", 64)
+            K = input.get("%K", 64)
+
+            A_np = np.random.randn(M,N).astype("float32")
+            indices_np = np.random.randint(0, M, size=(K,)).astype("int32")
+            C_np = np.zeros((K,N), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            indices = tvm.nd.array(indices_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["gather"]
+            func(A, indices, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.GatherRunner()
+
+    def get_name(self):
+        return "gather_benchmark"
+
+
+class ReshapeBenchSpec(BenchSpec):
+    
+    def get_input(self) -> dict:
+        return {
+            "%M": 128,  # Original shape
+            "%N": 64,   # New shape
+        }
+
+    def get_kernel_llvm_path(self) -> str:
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./reshape/reshape.ll"))
+
+    def get_directory(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./reshape"))
+
+    class ReshapeRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("%M", 128)
+            N = input.get("%N", 64)
+
+            A_np = np.random.randn(M,N).astype("float32")
+            C_np = np.zeros((M*N,), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["reshape"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.ReshapeRunner()
+
+    def get_name(self):
+        return "reshape_benchmark"
+
+
+class ShapeBenchSpec(BenchSpec):
+    
+    def get_input(self) -> dict:
+        return {
+            "%M": 128,  # Shape dimension
+            "%N": 64,   # Not used in this benchmark
+        }
+
+    def get_kernel_llvm_path(self) -> str:
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./shape/shape.ll"))
+
+    def get_directory(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./shape"))
+
+    class ShapeRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("%M", 128)
+            N = input.get("%N", 64)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((2,), dtype="int32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["shape"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.ShapeRunner()
+
+    def get_name(self):
+        return "shape_benchmark"
+
+
+class SqueezeBenchSpec(BenchSpec):
+    
+    def get_input(self) -> dict:
+        return {
+            "%M": 128,  # Original shape
+            "%N": 1,    # Squeeze axis size
+        }
+
+    def get_kernel_llvm_path(self) -> str:
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./squeeze/squeeze.ll"))
+
+    def get_directory(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./squeeze"))
+
+    class SqueezeRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("%M", 128)
+            N = input.get("%N", 1)
+
+            # Input shape is (M, 1), output shape is (M,)
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M,), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["squeeze"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.SqueezeRunner()
+
+    def get_name(self):
+        return "squeeze_benchmark"
+    
+
+class UnsqueezeBenchSpec(BenchSpec):
+    
+    def get_input(self) -> dict:
+        return {
+            "%M": 128,  # Original shape
+            "%N": 1,    # Unsqueeze axis size
+        }
+
+    def get_kernel_llvm_path(self) -> str:
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./unsqueeze/unsqueeze.ll"))
+
+    def get_directory(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./unsqueeze"))
+
+    class UnsqueezeRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("%M", 128)
+            N = input.get("%N", 1)
+
+            # Input shape is (M, N), output shape is (M, N, 1)
+            # But according to your creation, A is (M, N), C is unsqueezed at dim=1 -> (M, 1, N)
+            # So input shape is (M, N), output shape is (M, 1, N)
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, 1, N), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["unsqueeze"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.UnsqueezeRunner()
+
+    def get_name(self):
+        return "unsqueeze_benchmark"
+
+
+class TransposeBenchSpec(BenchSpec):
+
+    def get_input(self) -> dict:
+        return {
+            "%M": 128,
+            "%N": 64,
+        }
+
+    def get_kernel_llvm_path(self) -> str:
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./transpose/transpose.ll"))
+
+    def get_directory(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./transpose"))
+
+    class TransposeRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("%M", 128)
+            N = input.get("%N", 64)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((N, M), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["transpose"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.TransposeRunner()
+
+    def get_name(self):
+        return "transpose_benchmark"
+    
+benchmark(TransposeBenchSpec())

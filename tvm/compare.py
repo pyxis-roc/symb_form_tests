@@ -108,6 +108,10 @@ def print_compare_results(results, summary):
         print()
     print(f"Matched: {summary['matched']}/{summary['total']}")
 
+def print_summary(summary):
+    print(f"  Matched: {summary['matched']}")
+    print(f"  Total: {summary['total']}")
+
 def main():
     parser = argparse.ArgumentParser(description="Compare instruction counts with symbolic results.")
     parser.add_argument('--instr', required=True, help='Path to the instruction CSV file')
