@@ -2,7 +2,6 @@ Program:
 Inputs: %M %N %T_reshape %A 
   Branch: %entry
   True Ratio: TR_%entry
-  False Ratio: (1 - TR_%entry)
   True Side Graph:
     BasicBlock: %for_body_ax0.preheader
     Count: (TR_%entry * 1)

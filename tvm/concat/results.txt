@@ -2,32 +2,29 @@ Program:
 Inputs: %M %N %T_concat %B %A 
   Branch: %entry
   True Ratio: TR_%entry
-  False Ratio: (1 - TR_%entry)
   True Side Graph:
     Branch: %for_begin_ax1.preheader.us.preheader
     True Ratio: TR_%for_begin_ax1.preheader.us.preheader
-    False Ratio: (1 - TR_%for_begin_ax1.preheader.us.preheader)
     True Side Graph:
       Graph is null
     False Side Graph:
       BasicBlock: %for_begin_ax1.preheader.us.preheader.new
-      Count: ((1 - TR_%for_begin_ax1.preheader.us.preheader) * (TR_%entry * 1))
+      Count: scMul(scSub(1, TR_%for_begin_ax1.preheader.us.preheader), scMul(TR_%entry, 1))
       Loop: %for_begin_ax1.preheader.us
-      Loop Count: scUDiv(scAdd(-2, scMul(2, scUDiv(scZeroExt(scSMax(1, scMul(2, %M))), 2))), 2)
-      Guard Graph:
+      Loop Count: scAdd(scUDiv(scAdd(-2, scMul(2, scUDiv(scZeroExt(scSMax(1, scMul(2, %M))), 2))), 2), 1)
+      Head Graph:
         BasicBlock: %for_begin_ax1.preheader.us
-        Count: ((scUDiv(scAdd(-2, scMul(2, scUDiv(scZeroExt(scSMax(1, scMul(2, %M))), 2))), 2) + 1) * ((1 - TR_%for_begin_ax1.preheader.us.preheader) * (TR_%entry * 1)))
+        Count: scMul(scAdd(scUDiv(scAdd(-2, scMul(2, scUDiv(scZeroExt(scSMax(1, scMul(2, %M))), 2))), 2), 1), scMul(scSub(1, TR_%for_begin_ax1.preheader.us.preheader), scMul(TR_%entry, 1)))
       Body Graph:
         Graph is null
       Graph is null
     Branch: %for_end_ax0.loopexit.unr-lcssa
     True Ratio: TR_%for_end_ax0.loopexit.unr-lcssa
-    False Ratio: (1 - TR_%for_end_ax0.loopexit.unr-lcssa)
     True Side Graph:
       Graph is null
     False Side Graph:
       BasicBlock: %for_begin_ax1.preheader.us.epil
-      Count: ((1 - TR_%for_end_ax0.loopexit.unr-lcssa) * (TR_%entry * 1))
+      Count: scMul(scSub(1, TR_%for_end_ax0.loopexit.unr-lcssa), scMul(TR_%entry, 1))
       Graph is null
     Graph is null
   False Side Graph:

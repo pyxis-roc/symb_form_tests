@@ -2,11 +2,9 @@ Program:
 Inputs: %M %N %T_expand_dims %A 
   Branch: %entry
   True Ratio: TR_%entry
-  False Ratio: (1 - TR_%entry)
   True Side Graph:
     Branch: %for_begin_ax2.preheader.us.preheader
     True Ratio: TR_%for_begin_ax2.preheader.us.preheader
-    False Ratio: (1 - TR_%for_begin_ax2.preheader.us.preheader)
     True Side Graph:
       Graph is null
     False Side Graph:
@@ -14,7 +12,7 @@ Inputs: %M %N %T_expand_dims %A
       Count: ((1 - TR_%for_begin_ax2.preheader.us.preheader) * (TR_%entry * 1))
       Loop: %for_begin_ax2.preheader.us
       Loop Count: scUDiv(scAdd(-4, scMul(4, scZeroExt(scTrunc(scUDiv(scZeroExt(%M), 4))))), 4)
-      Guard Graph:
+      Head Graph:
         BasicBlock: %for_begin_ax2.preheader.us
         Count: ((scUDiv(scAdd(-4, scMul(4, scZeroExt(scTrunc(scUDiv(scZeroExt(%M), 4))))), 4) + 1) * ((1 - TR_%for_begin_ax2.preheader.us.preheader) * (TR_%entry * 1)))
       Body Graph:
@@ -22,13 +20,12 @@ Inputs: %M %N %T_expand_dims %A
       Graph is null
     Branch: %for_end_ax0.loopexit.unr-lcssa
     True Ratio: TR_%for_end_ax0.loopexit.unr-lcssa
-    False Ratio: (1 - TR_%for_end_ax0.loopexit.unr-lcssa)
     True Side Graph:
       Graph is null
     False Side Graph:
       Loop: %for_begin_ax2.preheader.us.epil
       Loop Count: scAdd(-1, scZeroExt(scTrunc(%M)))
-      Guard Graph:
+      Head Graph:
         BasicBlock: %for_begin_ax2.preheader.us.epil
         Count: ((scAdd(-1, scZeroExt(scTrunc(%M))) + 1) * ((1 - TR_%for_end_ax0.loopexit.unr-lcssa) * (TR_%entry * 1)))
       Body Graph:
