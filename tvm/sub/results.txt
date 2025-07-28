@@ -4,29 +4,29 @@ Inputs: %M %N %T_subtract %A %B
   True Ratio: TR_%entry
   True Side Graph:
     BasicBlock: %for_begin_ax1.preheader.us.preheader
-    Count: (TR_%entry * 1)
+    Count: scMul(TR_%entry, 1)
     Loop: %for_begin_ax1.preheader.us
-    Loop Count: scAdd(-1, scZeroExt(%M))
+    Loop Count: scAdd(scAdd(-1, scZeroExt(%M)), 1)
     Head Graph:
       Branch: %for_begin_ax1.preheader.us
       True Ratio: TR_%for_begin_ax1.preheader.us
       True Side Graph:
         BasicBlock: %for_body_ax1.us.preheader
-        Count: (TR_%for_begin_ax1.preheader.us * (scAdd(-1, scZeroExt(%M)) * (TR_%entry * 1)))
+        Count: scMul(TR_%for_begin_ax1.preheader.us, scMul(scAdd(scAdd(-1, scZeroExt(%M)), 1), scMul(TR_%entry, 1)))
         Loop: %for_body_ax1.us
-        Loop Count: scAdd(-1, scZeroExt(%N), scMul(-1,   %indvars.iv.ph = phi i64 [ 0, %for_begin_ax1.preheader.us ], [ %n.vec, %middle.block ]))
+        Loop Count: scAdd(scAdd(-1, scZeroExt(%N), scMul(-1, %indvars.iv.ph)), 1)
         Head Graph:
           BasicBlock: %for_body_ax1.us
-          Count: ((scAdd(-1, scZeroExt(%N), scMul(-1,   %indvars.iv.ph = phi i64 [ 0, %for_begin_ax1.preheader.us ], [ %n.vec, %middle.block ])) + 1) * (TR_%for_begin_ax1.preheader.us * (scAdd(-1, scZeroExt(%M)) * (TR_%entry * 1))))
+          Count: scMul(scAdd(scAdd(-1, scZeroExt(%N), scMul(-1, %indvars.iv.ph)), 1), scMul(TR_%for_begin_ax1.preheader.us, scMul(scAdd(scAdd(-1, scZeroExt(%M)), 1), scMul(TR_%entry, 1))))
         Body Graph:
           Graph is null
         Graph is null
       False Side Graph:
         Loop: %vector.body
-        Loop Count: scUDiv(scAdd(-8, scMul(8, scZeroExt(scTrunc(scUDiv(scZeroExt(%N), 8))))), 8)
+        Loop Count: scAdd(scUDiv(scAdd(-8, scMul(8, scZeroExt(scTrunc(scUDiv(scZeroExt(%N), 8))))), 8), 1)
         Head Graph:
           BasicBlock: %vector.body
-          Count: ((scUDiv(scAdd(-8, scMul(8, scZeroExt(scTrunc(scUDiv(scZeroExt(%N), 8))))), 8) + 1) * ((1 - TR_%for_begin_ax1.preheader.us) * (scAdd(-1, scZeroExt(%M)) * (TR_%entry * 1))))
+          Count: scMul(scAdd(scUDiv(scAdd(-8, scMul(8, scZeroExt(scTrunc(scUDiv(scZeroExt(%N), 8))))), 8), 1), scMul(scSub(1, TR_%for_begin_ax1.preheader.us), scMul(scAdd(scAdd(-1, scZeroExt(%M)), 1), scMul(TR_%entry, 1))))
         Body Graph:
           Graph is null
         Branch: %middle.block
@@ -35,19 +35,19 @@ Inputs: %M %N %T_subtract %A %B
           Graph is null
         False Side Graph:
           BasicBlock: %for_body_ax1.us.preheader
-          Count: ((1 - TR_%middle.block) * ((1 - TR_%for_begin_ax1.preheader.us) * (scAdd(-1, scZeroExt(%M)) * (TR_%entry * 1))))
+          Count: scMul(scSub(1, TR_%middle.block), scMul(scSub(1, TR_%for_begin_ax1.preheader.us), scMul(scAdd(scAdd(-1, scZeroExt(%M)), 1), scMul(TR_%entry, 1))))
           Loop: %for_body_ax1.us
-          Loop Count: scAdd(-1, scZeroExt(%N), scMul(-1,   %indvars.iv.ph = phi i64 [ 0, %for_begin_ax1.preheader.us ], [ %n.vec, %middle.block ]))
+          Loop Count: scAdd(scAdd(-1, scZeroExt(%N), scMul(-1, %indvars.iv.ph)), 1)
           Head Graph:
             BasicBlock: %for_body_ax1.us
-            Count: ((scAdd(-1, scZeroExt(%N), scMul(-1,   %indvars.iv.ph = phi i64 [ 0, %for_begin_ax1.preheader.us ], [ %n.vec, %middle.block ])) + 1) * ((1 - TR_%middle.block) * ((1 - TR_%for_begin_ax1.preheader.us) * (scAdd(-1, scZeroExt(%M)) * (TR_%entry * 1)))))
+            Count: scMul(scAdd(scAdd(-1, scZeroExt(%N), scMul(-1, %indvars.iv.ph)), 1), scMul(scSub(1, TR_%middle.block), scMul(scSub(1, TR_%for_begin_ax1.preheader.us), scMul(scAdd(scAdd(-1, scZeroExt(%M)), 1), scMul(TR_%entry, 1)))))
           Body Graph:
             Graph is null
           Graph is null
         Graph is null
     Body Graph:
       BasicBlock: %for_begin_ax1.for_end_ax1_crit_edge.us
-      Count: (scAdd(-1, scZeroExt(%M)) * (TR_%entry * 1))
+      Count: scMul(scAdd(scAdd(-1, scZeroExt(%M)), 1), scMul(TR_%entry, 1))
       Graph is null
     Graph is null
   False Side Graph:

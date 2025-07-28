@@ -1,0 +1,279 @@
+Program:
+Inputs: dev_id N CI H W A CO KH KW conv2d_nchw W1 
+  Branch: %entry
+  True Ratio: (concat #b000000000000000000000000000000000000000000000000000000000000000        (ite (= inst_pad_temp_2 null) #b1 #b0))
+  True Side Graph:
+    Graph is null
+  False Side Graph:
+    Branch: %for_begin_i0.preheader
+    True Ratio: #x0000000000000001
+    True Side Graph:
+      Branch: %for_begin_i1.preheader.lr.ph
+      True Ratio: #x0000000000000000
+      True Side Graph:
+        Branch: %for_begin_ff.preheader.lr.ph
+        True Ratio: #x0000000000000000
+        True Side Graph:
+          Graph is null
+        False Side Graph:
+          BasicBlock: %for_begin_ff.preheader.us.us.us.us.us.us.preheader
+          Count: #x0000000000000000
+          Loop: %for_begin_ff.preheader.us.us.us.us.us.us
+          Loop Count: #x0000000000000001
+          Head Graph:
+            BasicBlock: %for_begin_ff.preheader.us.us.us.us.us.us
+            Count: #x0000000000000000
+          Body Graph:
+            Loop: %for_body_ff.us.us.us.us.us.us.us.us.us.us.us
+            Loop Count: #x0000000000000040
+            Head Graph:
+              BasicBlock: %for_body_ff.us.us.us.us.us.us.us.us.us.us.us
+              Count: #x0000000000000000
+            Body Graph:
+              Loop: %for_body_yy.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+              Loop Count: #x00000000000000dc
+              Head Graph:
+                BasicBlock: %for_body_yy.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                Count: #x0000000000000000
+              Body Graph:
+                Loop: %for_begin_rc.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                Loop Count: #x00000000000000dc
+                Head Graph:
+                  BasicBlock: %for_begin_rc.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                  Count: #x0000000000000000
+                Body Graph:
+                  Loop: %for_begin_ry.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                  Loop Count: #x0000000000000003
+                  Head Graph:
+                    BasicBlock: %for_begin_ry.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                    Count: #x0000000000000000
+                  Body Graph:
+                    Loop: %for_begin_rx.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                    Loop Count: #x0000000000000007
+                    Head Graph:
+                      Branch: %for_begin_rx.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                      True Ratio: #x0000000000000000
+                      True Side Graph:
+                        Graph is null
+                      False Side Graph:
+                        Loop: %for_body_rx.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                        Loop Count: #x0000000000000003
+                        Head Graph:
+                          BasicBlock: %for_body_rx.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                          Count: #x0000000000000000
+                        Body Graph:
+                          Graph is null
+                        Graph is null
+                    Body Graph:
+                      Branch: %for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.unr-lcssa
+                      True Ratio: #x0000000000000000
+                      True Side Graph:
+                        Graph is null
+                      False Side Graph:
+                        BasicBlock: %for_body_rx.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.epil
+                        Count: #x0000000000000000
+                        Graph is null
+                      BasicBlock: %for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                      Count: #x0000000000000000
+                      Graph is null
+                    BasicBlock: %for_begin_ry.for_end_ry_crit_edge.split.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                    Count: #x0000000000000000
+                    Graph is null
+                  BasicBlock: %for_begin_rc.for_end_rc_crit_edge.split.us.split.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                  Count: #x0000000000000000
+                  Graph is null
+                BasicBlock: %for_begin_xx.for_end_xx_crit_edge.split.us.split.us.split.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                Count: #x0000000000000000
+                Graph is null
+              BasicBlock: %for_begin_yy.for_end_yy_crit_edge.split.us.split.us.split.us.split.us.us.us.us.us.us.us.us.us.us.us.us
+              Count: #x0000000000000000
+              Graph is null
+            BasicBlock: %for_begin_ff.for_end_ff_crit_edge.split.us.split.us.split.us.split.us.split.us.us.us.us.us.us.us
+            Count: #x0000000000000000
+            Graph is null
+          Graph is null
+        Graph is null
+      False Side Graph:
+        BasicBlock: %for_begin_i1.preheader.us.us.us.preheader
+        Count: (let ((a!1 (bvmul #xffffffffffffffff                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (= inst_pad_temp_2 null) #b1 #b0)))))  (bvadd #x0000000000000001 a!1))
+        Loop: %for_begin_i1.preheader.us.us.us
+        Loop Count: #x0000000000000001
+        Head Graph:
+          BasicBlock: %for_begin_i1.preheader.us.us.us
+          Count: (let ((a!1 (bvmul #xffffffffffffffff                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (= inst_pad_temp_2 null) #b1 #b0)))))  (bvadd #x0000000000000001 a!1))
+        Body Graph:
+          Loop: %for_begin_i2.preheader.us.us.us.us.us
+          Loop Count: #x0000000000000003
+          Head Graph:
+            BasicBlock: %for_begin_i2.preheader.us.us.us.us.us
+            Count: (let ((a!1 (bvmul #xfffffffffffffffd                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (= inst_pad_temp_2 null) #b1 #b0)))))  (bvadd #x0000000000000003 a!1))
+          Body Graph:
+            Loop: %for_begin_i3.preheader.us.us.us.us.us.us
+            Loop Count: #x00000000000000e2
+            Head Graph:
+              Branch: %for_begin_i3.preheader.us.us.us.us.us.us
+              True Ratio: TR_%for_begin_i3.preheader.us.us.us.us.us.us
+              True Side Graph:
+                Branch: %if_end3.us.us.us.us.us.us.peel
+                True Ratio: #x0000000000000000
+                True Side Graph:
+                  Graph is null
+                False Side Graph:
+                  Branch: %for_body_i3.us13.us.us.us.us.us.peel.next
+                  True Ratio: #x0000000000000000
+                  True Side Graph:
+                    Graph is null
+                  False Side Graph:
+                    Loop: %for_body_i3.us13.us.us.us.us.us
+                    Loop Count: #x0000000000000070
+                    Head Graph:
+                      Branch: %for_body_i3.us13.us.us.us.us.us
+                      True Ratio: TR_%for_body_i3.us13.us.us.us.us.us
+                      True Side Graph:
+                        Graph is null
+                      False Side Graph:
+                        BasicBlock: %if_then2.us.us.us.us.us.us
+                        Count: (let ((a!1 (bvmul #xffffffffffffffff                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (= inst_pad_temp_2 null) #b1 #b0)))))  (bvmul #x00000000000128a0         TR_%for_begin_i3.preheader.us.us.us.us.us.us         (bvadd #x0000000000000001                (bvmul #xffffffffffffffff TR_%for_body_i3.us13.us.us.us.us.us))         (bvadd #x0000000000000001 a!1)))
+                        Graph is null
+                    Body Graph:
+                      Branch: %if_end3.us.us.us.us.us.us
+                      True Ratio: TR_%if_end3.us.us.us.us.us.us
+                      True Side Graph:
+                        BasicBlock: %if_then2.us.us.us.us.us.us.1
+                        Count: (let ((a!1 (bvmul #xffffffffffffffff                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (= inst_pad_temp_2 null) #b1 #b0)))))  (bvmul #x00000000000128a0         TR_%for_begin_i3.preheader.us.us.us.us.us.us         TR_%if_end3.us.us.us.us.us.us         (bvadd #x0000000000000001 a!1)))
+                        Graph is null
+                      False Side Graph:
+                        Graph is null
+                      BasicBlock: %if_end3.us.us.us.us.us.us.1
+                      Count: (let ((a!1 (bvmul #xffffffffffffffff                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (= inst_pad_temp_2 null) #b1 #b0)))))  (bvmul #x00000000000128a0         TR_%for_begin_i3.preheader.us.us.us.us.us.us         (bvadd #x0000000000000001 a!1)))
+                      Graph is null
+                    Graph is null
+                  Branch: %for_begin_i3.for_end_i3_crit_edge.us.us.us.us.us.us.loopexit.unr-lcssa
+                  True Ratio: (concat #b000000000000000000000000000000000000000000000000000000000000000        ((_ extract 0 0) inst_smax_1))
+                  True Side Graph:
+                    Graph is null
+                  False Side Graph:
+                    Branch: %for_body_i3.us13.us.us.us.us.us.epil
+                    True Ratio: TR_%for_body_i3.us13.us.us.us.us.us.epil
+                    True Side Graph:
+                      Graph is null
+                    False Side Graph:
+                      BasicBlock: %if_then2.us.us.us.us.us.us.epil
+                      Count: (let ((a!1 (bvadd #x0000000000000001                  (bvmul #xffffffffffffffff                         (concat #b000000000000000000000000000000000000000000000000000000000000000                                 ((_ extract 0 0) inst_smax_1)))))      (a!2 (bvmul #xffffffffffffffff                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (= inst_pad_temp_2 null) #b1 #b0)))))  (bvmul #x00000000000002a6         TR_%for_begin_i3.preheader.us.us.us.us.us.us         (bvadd #x0000000000000001                (bvmul #xffffffffffffffff                       TR_%for_body_i3.us13.us.us.us.us.us.epil))         a!1         (bvadd #x0000000000000001 a!2)))
+                      Graph is null
+                    BasicBlock: %if_end3.us.us.us.us.us.us.epil
+                    Count: (let ((a!1 (bvadd #x0000000000000001                  (bvmul #xffffffffffffffff                         (concat #b000000000000000000000000000000000000000000000000000000000000000                                 ((_ extract 0 0) inst_smax_1)))))      (a!2 (bvmul #xffffffffffffffff                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (= inst_pad_temp_2 null) #b1 #b0)))))  (bvmul #x00000000000002a6         TR_%for_begin_i3.preheader.us.us.us.us.us.us         a!1         (bvadd #x0000000000000001 a!2)))
+                    Graph is null
+                  Graph is null
+                Graph is null
+              False Side Graph:
+                BasicBlock: %for_body_i3.us.us.us.us.us.us.us.preheader
+                Count: (let ((a!1 (bvmul #xffffffffffffffff                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (= inst_pad_temp_2 null) #b1 #b0)))))  (bvmul #x00000000000002a6         (bvadd #x0000000000000001                (bvmul #xffffffffffffffff                       TR_%for_begin_i3.preheader.us.us.us.us.us.us))         (bvadd #x0000000000000001 a!1)))
+                Graph is null
+            Body Graph:
+              BasicBlock: %for_begin_i3.for_end_i3_crit_edge.us.us.us.us.us.us
+              Count: (let ((a!1 (bvmul #xfffffffffffffd5a                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (= inst_pad_temp_2 null) #b1 #b0)))))  (bvadd #x00000000000002a6 a!1))
+              Graph is null
+            BasicBlock: %for_begin_i2.for_end_i2_crit_edge.split.us.us.us.us.us.us
+            Count: (let ((a!1 (bvmul #xfffffffffffffffd                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (= inst_pad_temp_2 null) #b1 #b0)))))  (bvadd #x0000000000000003 a!1))
+            Graph is null
+          BasicBlock: %for_begin_i1.for_end_i1_crit_edge.split.us.split.us.us.us.us
+          Count: (let ((a!1 (bvmul #xffffffffffffffff                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (= inst_pad_temp_2 null) #b1 #b0)))))  (bvadd #x0000000000000001 a!1))
+          Graph is null
+        Branch: %for_begin_nn.preheader
+        True Ratio: #x0000000000000001
+        True Side Graph:
+          Branch: %for_begin_ff.preheader.lr.ph
+          True Ratio: #x0000000000000000
+          True Side Graph:
+            Graph is null
+          False Side Graph:
+            BasicBlock: %for_begin_ff.preheader.us.us.us.us.us.us.preheader
+            Count: #x0000000000000000
+            Loop: %for_begin_ff.preheader.us.us.us.us.us.us
+            Loop Count: #x0000000000000001
+            Head Graph:
+              BasicBlock: %for_begin_ff.preheader.us.us.us.us.us.us
+              Count: #x0000000000000000
+            Body Graph:
+              Loop: %for_body_ff.us.us.us.us.us.us.us.us.us.us.us
+              Loop Count: #x0000000000000040
+              Head Graph:
+                BasicBlock: %for_body_ff.us.us.us.us.us.us.us.us.us.us.us
+                Count: #x0000000000000000
+              Body Graph:
+                Loop: %for_body_yy.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                Loop Count: #x00000000000000dc
+                Head Graph:
+                  BasicBlock: %for_body_yy.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                  Count: #x0000000000000000
+                Body Graph:
+                  Loop: %for_begin_rc.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                  Loop Count: #x00000000000000dc
+                  Head Graph:
+                    BasicBlock: %for_begin_rc.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                    Count: #x0000000000000000
+                  Body Graph:
+                    Loop: %for_begin_ry.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                    Loop Count: #x0000000000000003
+                    Head Graph:
+                      BasicBlock: %for_begin_ry.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                      Count: #x0000000000000000
+                    Body Graph:
+                      Loop: %for_begin_rx.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                      Loop Count: #x0000000000000007
+                      Head Graph:
+                        Branch: %for_begin_rx.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                        True Ratio: #x0000000000000000
+                        True Side Graph:
+                          Graph is null
+                        False Side Graph:
+                          Loop: %for_body_rx.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                          Loop Count: #x0000000000000003
+                          Head Graph:
+                            BasicBlock: %for_body_rx.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                            Count: #x0000000000000000
+                          Body Graph:
+                            Graph is null
+                          Graph is null
+                      Body Graph:
+                        Branch: %for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.unr-lcssa
+                        True Ratio: #x0000000000000000
+                        True Side Graph:
+                          Graph is null
+                        False Side Graph:
+                          BasicBlock: %for_body_rx.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.epil
+                          Count: #x0000000000000000
+                          Graph is null
+                        BasicBlock: %for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                        Count: #x0000000000000000
+                        Graph is null
+                      BasicBlock: %for_begin_ry.for_end_ry_crit_edge.split.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                      Count: #x0000000000000000
+                      Graph is null
+                    BasicBlock: %for_begin_rc.for_end_rc_crit_edge.split.us.split.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                    Count: #x0000000000000000
+                    Graph is null
+                  BasicBlock: %for_begin_xx.for_end_xx_crit_edge.split.us.split.us.split.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us
+                  Count: #x0000000000000000
+                  Graph is null
+                BasicBlock: %for_begin_yy.for_end_yy_crit_edge.split.us.split.us.split.us.split.us.us.us.us.us.us.us.us.us.us.us.us
+                Count: #x0000000000000000
+                Graph is null
+              BasicBlock: %for_begin_ff.for_end_ff_crit_edge.split.us.split.us.split.us.split.us.split.us.us.us.us.us.us.us
+              Count: #x0000000000000000
+              Graph is null
+            Graph is null
+          Graph is null
+        False Side Graph:
+          Graph is null
+        Graph is null
+      Graph is null
+    False Side Graph:
+      Graph is null
+    BasicBlock: %for_end_nn
+    Count: (let ((a!1 (bvmul #xffffffffffffffff                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (= inst_pad_temp_2 null) #b1 #b0)))))  (bvadd #x0000000000000001 a!1))
+    Graph is null
+  BasicBlock: %common.ret
+  Count: #x0000000000000001
+  Graph is null

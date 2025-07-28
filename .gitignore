@@ -1,0 +1,4 @@
+__pycache__
+*.profdata
+*.so
+.__*.pdf

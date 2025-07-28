@@ -6,6 +6,7 @@ base_dir = os.path.dirname(os.path.abspath(__file__))
 for entry in os.listdir(base_dir):
     dir_path = os.path.join(base_dir, entry)
     if os.path.isdir(dir_path):
+        os.chdir(dir_path)
         cc_files = [f for f in os.listdir(dir_path) if f.endswith('.cc')]
         print(f"Checking directory: {dir_path}")
         print(f"Found .cc files: {cc_files}")

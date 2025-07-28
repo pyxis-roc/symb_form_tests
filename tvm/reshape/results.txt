@@ -4,7 +4,7 @@ Inputs: %M %N %T_reshape %A
   True Ratio: TR_%entry
   True Side Graph:
     BasicBlock: %for_body_ax0.preheader
-    Count: (TR_%entry * 1)
+    Count: scMul(TR_%entry, 1)
     Graph is null
   False Side Graph:
     Graph is null

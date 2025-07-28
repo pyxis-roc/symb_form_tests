@@ -1,0 +1,39 @@
+Program:
+Inputs: M N T_expand_dims A 
+  Branch: %entry
+  True Ratio: (let ((a!1 (ite (= (ite (bvsgt M #x00000000) #b1 #b0) #b1)                (ite (bvsgt N #x00000000) #b1 #b0)                #b0)))  ((_ zero_extend 63) a!1))
+  True Side Graph:
+    Branch: %for_begin_ax2.preheader.us.preheader
+    True Ratio: ((_ zero_extend 63) (ite (bvult M #x00000004) #b1 #b0))
+    True Side Graph:
+      Graph is null
+    False Side Graph:
+      BasicBlock: %for_begin_ax2.preheader.us.preheader.new
+      Count: (let ((a!1 (concat #b000000000000000000000000000000000000000000000000000000000000000                   (ite (or (bvsle M #x00000000) (bvsle N #x00000000)) #b0 #b1)))      (a!2 (bvmul #xffffffffffffffff                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (bvule #x00000004 M) #b0 #b1)))))  (bvmul a!1 (bvadd #x0000000000000001 a!2)))
+      Loop: %for_begin_ax2.preheader.us
+      Loop Count: (let ((a!1 ((_ zero_extend 35)             ((_ extract 28 0)               (bvsdiv ((_ zero_extend 32) M) #x0000000000000004)))))  (bvadd (bvsdiv (bvadd #xfffffffffffffffc (bvmul #x0000000000000004 a!1))                 #x0000000000000004)         #x0000000000000001))
+      Head Graph:
+        BasicBlock: %for_begin_ax2.preheader.us
+        Count: (let ((a!1 (concat #b000000000000000000000000000000000000000000000000000000000000000                   (ite (or (bvsle M #x00000000) (bvsle N #x00000000)) #b0 #b1)))      (a!2 (bvmul #xffffffffffffffff                  (concat #b000000000000000000000000000000000000000000000000000000000000000                          (ite (bvule #x00000004 M) #b0 #b1))))      (a!3 (concat #b00000000000000000000000000000000000                   ((_ extract 28 0)                     (bvsdiv_i (concat #x00000000 M) #x0000000000000004)))))(let ((a!4 (bvadd #x0000000000000001                  (bvsdiv_i (bvadd #xfffffffffffffffc                                   (bvmul #x0000000000000004 a!3))                            #x0000000000000004))))  (bvmul a!1 (bvadd #x0000000000000001 a!2) a!4)))
+      Body Graph:
+        Graph is null
+      Graph is null
+    Branch: %for_end_ax0.loopexit.unr-lcssa
+    True Ratio: (let ((a!1 (ite (= (bvand ((_ zero_extend 32) M) #x0000000000000003)                   #x0000000000000000)                #b1                #b0)))  ((_ zero_extend 63) a!1))
+    True Side Graph:
+      Graph is null
+    False Side Graph:
+      Loop: %for_begin_ax2.preheader.us.epil
+      Loop Count: (bvadd #xffffffffffffffff       ((_ zero_extend 62) ((_ extract 1 0) M))       #x0000000000000001)
+      Head Graph:
+        BasicBlock: %for_begin_ax2.preheader.us.epil
+        Count: (let ((a!1 (concat #b000000000000000000000000000000000000000000000000000000000000000                   (ite (or (bvsle M #x00000000) (bvsle N #x00000000)) #b0 #b1)))      (a!2 (concat #b000000000000000000000000000000000000000000000000000000000000000                   (ite (= ((_ extract 1 0) M) #b00) #b1 #b0))))  (bvmul (concat #b00000000000000000000000000000000000000000000000000000000000000                 ((_ extract 1 0) M))         a!1         (bvadd #x0000000000000001 (bvmul #xffffffffffffffff a!2))))
+      Body Graph:
+        Graph is null
+      Graph is null
+    Graph is null
+  False Side Graph:
+    Graph is null
+  BasicBlock: %for_end_ax0
+  Count: #x0000000000000001
+  Graph is null

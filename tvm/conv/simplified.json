@@ -1,0 +1,503 @@
+{
+    "args": [
+        "dev_id",
+        "N",
+        "CI",
+        "H",
+        "W",
+        "A",
+        "CO",
+        "KH",
+        "KW",
+        "conv2d_nchw",
+        "W1"
+    ],
+    "basic_graphs": [
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "Branch",
+            "id": "8478614771321146473",
+            "name": "%entry"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "Branch",
+            "id": "11972132418663134212",
+            "name": "%for_begin_i0.preheader"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "Branch",
+            "id": "12894306488154148435",
+            "name": "%for_begin_i1.preheader.lr.ph"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "BasicBlock",
+            "id": "8000077615766538008",
+            "name": "%for_begin_i1.preheader.us.us.us.preheader"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "Loop",
+            "id": "13733651926777593706",
+            "name": "%for_begin_i1.preheader.us.us.us"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "BasicBlock",
+            "id": "13733651926777593706",
+            "name": "%for_begin_i1.preheader.us.us.us"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "Loop",
+            "id": "8931086385520266024",
+            "name": "%for_begin_i2.preheader.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000003",
+            "graph_type": "BasicBlock",
+            "id": "8931086385520266024",
+            "name": "%for_begin_i2.preheader.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000003",
+            "graph_type": "Loop",
+            "id": "4053808808082839330",
+            "name": "%for_begin_i3.preheader.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000000002a6",
+            "graph_type": "Branch",
+            "id": "4053808808082839330",
+            "name": "%for_begin_i3.preheader.us.us.us.us.us.us"
+        },
+        {
+            "count": "(bvadd #x00000000000002a6       (bvmul #xfffffffffffffd5a TR_%for_begin_i3.preheader.us.us.us.us.us.us))",
+            "graph_type": "BasicBlock",
+            "id": "15970858928860789995",
+            "name": "%for_body_i3.us.us.us.us.us.us.us.preheader"
+        },
+        {
+            "count": "(bvadd #x00000000000002a6       (bvmul #xfffffffffffffd5a TR_%for_begin_i3.preheader.us.us.us.us.us.us))",
+            "graph_type": "BasicBlock",
+            "id": "10836862702608831868",
+            "name": "%for_begin_i3.for_end_i3_crit_edge.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000000002a6",
+            "graph_type": "Branch",
+            "id": "5871394920936122150",
+            "name": "%if_end3.us.us.us.us.us.us.peel"
+        },
+        {
+            "count": "#x00000000000002a6",
+            "graph_type": "Branch",
+            "id": "13019356496506194993",
+            "name": "%for_body_i3.us13.us.us.us.us.us.peel.next"
+        },
+        {
+            "count": "#x00000000000002a6",
+            "graph_type": "Loop",
+            "id": "6332870020478466679",
+            "name": "%for_body_i3.us13.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000000128a0",
+            "graph_type": "Branch",
+            "id": "6332870020478466679",
+            "name": "%for_body_i3.us13.us.us.us.us.us"
+        },
+        {
+            "count": "(bvadd #x00000000000128a0       (bvmul #xfffffffffffed760 TR_%for_body_i3.us13.us.us.us.us.us))",
+            "graph_type": "BasicBlock",
+            "id": "10789372984271854731",
+            "name": "%if_then2.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000000128a0",
+            "graph_type": "Branch",
+            "id": "1871136991458553470",
+            "name": "%if_end3.us.us.us.us.us.us"
+        },
+        {
+            "count": "(bvadd #x00000000000128a0       (bvmul #xfffffffffffed760 TR_%if_end3.us.us.us.us.us.us))",
+            "graph_type": "BasicBlock",
+            "id": "16758195261427989050",
+            "name": "%if_end3.us.us.us.us.us.us.1"
+        },
+        {
+            "count": "#x00000000000128a0",
+            "graph_type": "BasicBlock",
+            "id": "2043742700285247393",
+            "name": "%if_then2.us.us.us.us.us.us.1"
+        },
+        {
+            "count": "(bvadd #x00000000000128a0       (bvmul #xfffffffffffed760 TR_%if_end3.us.us.us.us.us.us))",
+            "graph_type": "BasicBlock",
+            "id": "16758195261427989050",
+            "name": "%if_end3.us.us.us.us.us.us.1"
+        },
+        {
+            "count": "#x00000000000002a6",
+            "graph_type": "Branch",
+            "id": "12025665848441027834",
+            "name": "%for_begin_i3.for_end_i3_crit_edge.us.us.us.us.us.us.loopexit.unr-lcssa"
+        },
+        {
+            "count": "(bvadd #x00000000000002a6       (bvmul #xfffffffffffffd5a              (concat #b000000000000000000000000000000000000000000000000000000000000000                      ((_ extract 0 0) inst_smax_1))))",
+            "graph_type": "Branch",
+            "id": "9586874893423269125",
+            "name": "%for_body_i3.us13.us.us.us.us.us.epil"
+        },
+        {
+            "count": "(let ((a!1 (bvadd #x0000000000000001                  (bvmul #xffffffffffffffff                         (concat #b000000000000000000000000000000000000000000000000000000000000000                                 ((_ extract 0 0) inst_smax_1))))))  (bvmul #x00000000000002a6         (bvadd #x0000000000000001                (bvmul #xffffffffffffffff                       TR_%for_body_i3.us13.us.us.us.us.us.epil))         a!1))",
+            "graph_type": "BasicBlock",
+            "id": "10092390335102080662",
+            "name": "%if_then2.us.us.us.us.us.us.epil"
+        },
+        {
+            "count": "(bvadd #x00000000000002a6       (bvmul #xfffffffffffffd5a              (concat #b000000000000000000000000000000000000000000000000000000000000000                      ((_ extract 0 0) inst_smax_1))))",
+            "graph_type": "BasicBlock",
+            "id": "16239318324509781872",
+            "name": "%if_end3.us.us.us.us.us.us.epil"
+        },
+        {
+            "count": "(bvadd #x00000000000002a6       (bvmul #xfffffffffffffd5a TR_%for_begin_i3.preheader.us.us.us.us.us.us))",
+            "graph_type": "BasicBlock",
+            "id": "10836862702608831868",
+            "name": "%for_begin_i3.for_end_i3_crit_edge.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000003",
+            "graph_type": "BasicBlock",
+            "id": "7138659714013648319",
+            "name": "%for_begin_i2.for_end_i2_crit_edge.split.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "BasicBlock",
+            "id": "10963435858943734772",
+            "name": "%for_begin_i1.for_end_i1_crit_edge.split.us.split.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "Branch",
+            "id": "10281441191773759798",
+            "name": "%for_begin_nn.preheader"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "Branch",
+            "id": "16891768532459648180",
+            "name": "%for_begin_ff.preheader.lr.ph"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "BasicBlock",
+            "id": "13241294232746340034",
+            "name": "%for_begin_ff.preheader.us.us.us.us.us.us.preheader"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "Loop",
+            "id": "17910434082810156793",
+            "name": "%for_begin_ff.preheader.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "BasicBlock",
+            "id": "17910434082810156793",
+            "name": "%for_begin_ff.preheader.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "Loop",
+            "id": "4720490898118200614",
+            "name": "%for_body_ff.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000040",
+            "graph_type": "BasicBlock",
+            "id": "4720490898118200614",
+            "name": "%for_body_ff.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000040",
+            "graph_type": "Loop",
+            "id": "7795467041909240775",
+            "name": "%for_body_yy.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000003700",
+            "graph_type": "BasicBlock",
+            "id": "7795467041909240775",
+            "name": "%for_body_yy.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000003700",
+            "graph_type": "Loop",
+            "id": "6794988721335634342",
+            "name": "%for_begin_rc.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000002f4400",
+            "graph_type": "BasicBlock",
+            "id": "6794988721335634342",
+            "name": "%for_begin_rc.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000002f4400",
+            "graph_type": "Loop",
+            "id": "10490638811491287174",
+            "name": "%for_begin_ry.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000008dcc00",
+            "graph_type": "BasicBlock",
+            "id": "10490638811491287174",
+            "name": "%for_begin_ry.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000008dcc00",
+            "graph_type": "Loop",
+            "id": "7828823861647415223",
+            "name": "%for_begin_rx.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000003e09400",
+            "graph_type": "Branch",
+            "id": "7828823861647415223",
+            "name": "%for_begin_rx.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000003e09400",
+            "graph_type": "Loop",
+            "id": "15931453482533585772",
+            "name": "%for_body_rx.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x000000000ba1bc00",
+            "graph_type": "BasicBlock",
+            "id": "15931453482533585772",
+            "name": "%for_body_rx.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000003e09400",
+            "graph_type": "Branch",
+            "id": "12280004833497473886",
+            "name": "%for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.unr-lcssa"
+        },
+        {
+            "count": "#x0000000003e09400",
+            "graph_type": "BasicBlock",
+            "id": "12304080068997453992",
+            "name": "%for_body_rx.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.epil"
+        },
+        {
+            "count": "#x0000000003e09400",
+            "graph_type": "BasicBlock",
+            "id": "17338424184352885628",
+            "name": "%for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000008dcc00",
+            "graph_type": "BasicBlock",
+            "id": "11227766038073394647",
+            "name": "%for_begin_ry.for_end_ry_crit_edge.split.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000002f4400",
+            "graph_type": "BasicBlock",
+            "id": "5864624132042681048",
+            "name": "%for_begin_rc.for_end_rc_crit_edge.split.us.split.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000003700",
+            "graph_type": "BasicBlock",
+            "id": "2729271843715838787",
+            "name": "%for_begin_xx.for_end_xx_crit_edge.split.us.split.us.split.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000040",
+            "graph_type": "BasicBlock",
+            "id": "11261424724700774378",
+            "name": "%for_begin_yy.for_end_yy_crit_edge.split.us.split.us.split.us.split.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "BasicBlock",
+            "id": "15308402579581119587",
+            "name": "%for_begin_ff.for_end_ff_crit_edge.split.us.split.us.split.us.split.us.split.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "BasicBlock",
+            "id": "16214029585764543026",
+            "name": "%for_end_nn"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "BasicBlock",
+            "id": "14525282503459429573",
+            "name": "%common.ret"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "Branch",
+            "id": "16891768532459648180",
+            "name": "%for_begin_ff.preheader.lr.ph"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "BasicBlock",
+            "id": "13241294232746340034",
+            "name": "%for_begin_ff.preheader.us.us.us.us.us.us.preheader"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "Loop",
+            "id": "17910434082810156793",
+            "name": "%for_begin_ff.preheader.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "BasicBlock",
+            "id": "17910434082810156793",
+            "name": "%for_begin_ff.preheader.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "Loop",
+            "id": "4720490898118200614",
+            "name": "%for_body_ff.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000040",
+            "graph_type": "BasicBlock",
+            "id": "4720490898118200614",
+            "name": "%for_body_ff.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000040",
+            "graph_type": "Loop",
+            "id": "7795467041909240775",
+            "name": "%for_body_yy.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000003700",
+            "graph_type": "BasicBlock",
+            "id": "7795467041909240775",
+            "name": "%for_body_yy.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000003700",
+            "graph_type": "Loop",
+            "id": "6794988721335634342",
+            "name": "%for_begin_rc.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000002f4400",
+            "graph_type": "BasicBlock",
+            "id": "6794988721335634342",
+            "name": "%for_begin_rc.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000002f4400",
+            "graph_type": "Loop",
+            "id": "10490638811491287174",
+            "name": "%for_begin_ry.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000008dcc00",
+            "graph_type": "BasicBlock",
+            "id": "10490638811491287174",
+            "name": "%for_begin_ry.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000008dcc00",
+            "graph_type": "Loop",
+            "id": "7828823861647415223",
+            "name": "%for_begin_rx.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000003e09400",
+            "graph_type": "Branch",
+            "id": "7828823861647415223",
+            "name": "%for_begin_rx.preheader.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000003e09400",
+            "graph_type": "Loop",
+            "id": "15931453482533585772",
+            "name": "%for_body_rx.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x000000000ba1bc00",
+            "graph_type": "BasicBlock",
+            "id": "15931453482533585772",
+            "name": "%for_body_rx.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000003e09400",
+            "graph_type": "Branch",
+            "id": "12280004833497473886",
+            "name": "%for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.unr-lcssa"
+        },
+        {
+            "count": "#x0000000003e09400",
+            "graph_type": "BasicBlock",
+            "id": "12304080068997453992",
+            "name": "%for_body_rx.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.epil"
+        },
+        {
+            "count": "#x0000000003e09400",
+            "graph_type": "BasicBlock",
+            "id": "17338424184352885628",
+            "name": "%for_begin_rx.for_end_rx_crit_edge.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000008dcc00",
+            "graph_type": "BasicBlock",
+            "id": "11227766038073394647",
+            "name": "%for_begin_ry.for_end_ry_crit_edge.split.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x00000000002f4400",
+            "graph_type": "BasicBlock",
+            "id": "5864624132042681048",
+            "name": "%for_begin_rc.for_end_rc_crit_edge.split.us.split.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000003700",
+            "graph_type": "BasicBlock",
+            "id": "2729271843715838787",
+            "name": "%for_begin_xx.for_end_xx_crit_edge.split.us.split.us.split.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000040",
+            "graph_type": "BasicBlock",
+            "id": "11261424724700774378",
+            "name": "%for_begin_yy.for_end_yy_crit_edge.split.us.split.us.split.us.split.us.us.us.us.us.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "BasicBlock",
+            "id": "15308402579581119587",
+            "name": "%for_begin_ff.for_end_ff_crit_edge.split.us.split.us.split.us.split.us.split.us.us.us.us.us.us.us"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "BasicBlock",
+            "id": "16214029585764543026",
+            "name": "%for_end_nn"
+        },
+        {
+            "count": "#x0000000000000001",
+            "graph_type": "BasicBlock",
+            "id": "14525282503459429573",
+            "name": "%common.ret"
+        }
+    ]
+}

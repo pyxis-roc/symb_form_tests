@@ -4,18 +4,18 @@ Inputs: %N %M %T_transpose %A
   True Ratio: TR_%entry
   True Side Graph:
     BasicBlock: %for_begin_ax1.preheader.us.preheader
-    Count: (TR_%entry * 1)
+    Count: scMul(TR_%entry, 1)
     Loop: %for_begin_ax1.preheader.us
-    Loop Count: scAdd(-1, scZeroExt(%N))
+    Loop Count: scAdd(scAdd(-1, scZeroExt(%N)), 1)
     Head Graph:
       Branch: %for_begin_ax1.preheader.us
       True Ratio: TR_%for_begin_ax1.preheader.us
       True Side Graph:
         Loop: %vector.body
-        Loop Count: scUDiv(scAdd(-8, scMul(8, scZeroExt(scTrunc(scUDiv(scZeroExt(%M), 8))))), 8)
+        Loop Count: scAdd(scUDiv(scAdd(-8, scMul(8, scZeroExt(scTrunc(scUDiv(scZeroExt(%M), 8))))), 8), 1)
         Head Graph:
           BasicBlock: %vector.body
-          Count: ((scUDiv(scAdd(-8, scMul(8, scZeroExt(scTrunc(scUDiv(scZeroExt(%M), 8))))), 8) + 1) * (TR_%for_begin_ax1.preheader.us * (scAdd(-1, scZeroExt(%N)) * (TR_%entry * 1))))
+          Count: scMul(scAdd(scUDiv(scAdd(-8, scMul(8, scZeroExt(scTrunc(scUDiv(scZeroExt(%M), 8))))), 8), 1), scMul(TR_%for_begin_ax1.preheader.us, scMul(scAdd(scAdd(-1, scZeroExt(%N)), 1), scMul(TR_%entry, 1))))
         Body Graph:
           Graph is null
         Branch: %middle.block
@@ -29,10 +29,10 @@ Inputs: %N %M %T_transpose %A
             Graph is null
           False Side Graph:
             Loop: %for_body_ax1.us.prol
-            Loop Count: scAdd(-1, scZeroExt(scTrunc(%M)))
+            Loop Count: scAdd(scAdd(-1, scZeroExt(scTrunc(%M))), 1)
             Head Graph:
               BasicBlock: %for_body_ax1.us.prol
-              Count: ((scAdd(-1, scZeroExt(scTrunc(%M))) + 1) * ((1 - TR_%for_body_ax1.us.preheader) * ((1 - TR_%middle.block) * (TR_%for_begin_ax1.preheader.us * (scAdd(-1, scZeroExt(%N)) * (TR_%entry * 1))))))
+              Count: scMul(scAdd(scAdd(-1, scZeroExt(scTrunc(%M))), 1), scMul(scSub(1, TR_%for_body_ax1.us.preheader), scMul(scSub(1, TR_%middle.block), scMul(TR_%for_begin_ax1.preheader.us, scMul(scAdd(scAdd(-1, scZeroExt(%N)), 1), scMul(TR_%entry, 1))))))
             Body Graph:
               Graph is null
             Graph is null
@@ -42,10 +42,10 @@ Inputs: %N %M %T_transpose %A
             Graph is null
           False Side Graph:
             Loop: %for_body_ax1.us
-            Loop Count: scUDiv(scAdd(-4, scZeroExt(%M), scMul(-1,   %indvars.iv.unr = phi i64 [ %indvars.iv.ph, %for_body_ax1.us.preheader ], [ %indvars.iv.next.prol, %for_body_ax1.us.prol ])), 4)
+            Loop Count: scAdd(scUDiv(scAdd(-4, scZeroExt(%M), scMul(-1, %indvars.iv.unr)), 4), 1)
             Head Graph:
               BasicBlock: %for_body_ax1.us
-              Count: ((scUDiv(scAdd(-4, scZeroExt(%M), scMul(-1,   %indvars.iv.unr = phi i64 [ %indvars.iv.ph, %for_body_ax1.us.preheader ], [ %indvars.iv.next.prol, %for_body_ax1.us.prol ])), 4) + 1) * ((1 - TR_%for_body_ax1.us.prol.loopexit) * ((1 - TR_%middle.block) * (TR_%for_begin_ax1.preheader.us * (scAdd(-1, scZeroExt(%N)) * (TR_%entry * 1))))))
+              Count: scMul(scAdd(scUDiv(scAdd(-4, scZeroExt(%M), scMul(-1, %indvars.iv.unr)), 4), 1), scMul(scSub(1, TR_%for_body_ax1.us.prol.loopexit), scMul(scSub(1, TR_%middle.block), scMul(TR_%for_begin_ax1.preheader.us, scMul(scAdd(scAdd(-1, scZeroExt(%N)), 1), scMul(TR_%entry, 1))))))
             Body Graph:
               Graph is null
             Graph is null
@@ -58,10 +58,10 @@ Inputs: %N %M %T_transpose %A
           Graph is null
         False Side Graph:
           Loop: %for_body_ax1.us.prol
-          Loop Count: scAdd(-1, scZeroExt(scTrunc(%M)))
+          Loop Count: scAdd(scAdd(-1, scZeroExt(scTrunc(%M))), 1)
           Head Graph:
             BasicBlock: %for_body_ax1.us.prol
-            Count: ((scAdd(-1, scZeroExt(scTrunc(%M))) + 1) * ((1 - TR_%for_body_ax1.us.preheader) * ((1 - TR_%for_begin_ax1.preheader.us) * (scAdd(-1, scZeroExt(%N)) * (TR_%entry * 1)))))
+            Count: scMul(scAdd(scAdd(-1, scZeroExt(scTrunc(%M))), 1), scMul(scSub(1, TR_%for_body_ax1.us.preheader), scMul(scSub(1, TR_%for_begin_ax1.preheader.us), scMul(scAdd(scAdd(-1, scZeroExt(%N)), 1), scMul(TR_%entry, 1)))))
           Body Graph:
             Graph is null
           Graph is null
@@ -71,17 +71,17 @@ Inputs: %N %M %T_transpose %A
           Graph is null
         False Side Graph:
           Loop: %for_body_ax1.us
-          Loop Count: scUDiv(scAdd(-4, scZeroExt(%M), scMul(-1,   %indvars.iv.unr = phi i64 [ %indvars.iv.ph, %for_body_ax1.us.preheader ], [ %indvars.iv.next.prol, %for_body_ax1.us.prol ])), 4)
+          Loop Count: scAdd(scUDiv(scAdd(-4, scZeroExt(%M), scMul(-1, %indvars.iv.unr)), 4), 1)
           Head Graph:
             BasicBlock: %for_body_ax1.us
-            Count: ((scUDiv(scAdd(-4, scZeroExt(%M), scMul(-1,   %indvars.iv.unr = phi i64 [ %indvars.iv.ph, %for_body_ax1.us.preheader ], [ %indvars.iv.next.prol, %for_body_ax1.us.prol ])), 4) + 1) * ((1 - TR_%for_body_ax1.us.prol.loopexit) * ((1 - TR_%for_begin_ax1.preheader.us) * (scAdd(-1, scZeroExt(%N)) * (TR_%entry * 1)))))
+            Count: scMul(scAdd(scUDiv(scAdd(-4, scZeroExt(%M), scMul(-1, %indvars.iv.unr)), 4), 1), scMul(scSub(1, TR_%for_body_ax1.us.prol.loopexit), scMul(scSub(1, TR_%for_begin_ax1.preheader.us), scMul(scAdd(scAdd(-1, scZeroExt(%N)), 1), scMul(TR_%entry, 1)))))
           Body Graph:
             Graph is null
           Graph is null
         Graph is null
     Body Graph:
       BasicBlock: %for_begin_ax1.for_end_ax1_crit_edge.us
-      Count: (scAdd(-1, scZeroExt(%N)) * (TR_%entry * 1))
+      Count: scMul(scAdd(scAdd(-1, scZeroExt(%N)), 1), scMul(TR_%entry, 1))
       Graph is null
     Graph is null
   False Side Graph:

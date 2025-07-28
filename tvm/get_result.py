@@ -13,7 +13,7 @@ def main():
 
     # Run symb-viewer and capture output
     symb_viewer_cmd = ["symb-viewer", args.ir_file, args.function_name]
-    with open("results.txt", "w") as outfile:
+    with open("new_results.txt", "w") as outfile:
         subprocess.run(symb_viewer_cmd, stdout=outfile, check=True)
 
 if __name__ == "__main__":

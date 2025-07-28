@@ -1,7 +1,7 @@
 import tvm
 from tvm import te
 import os
-
+import tvm.topi
 # A = te.placeholder((128, 128), "float32", name="A")
 # B = te.placeholder((128, 128), "float32", name="B")
 # k = te.reduce_axis((0, 128), "k")
@@ -19,7 +19,7 @@ def generate_gather():
     K = te.var("K")
     A = te.placeholder((M, N), "float32", name="A")
     indices = te.placeholder((K,), "int32", name="indices")
-    C = tvm.relax.frontend.common.topi.take(A, indices, axis=0)
+    C = tvm.topi.take(A, indices, axis=0)
     te_func = te.create_prim_func([A, indices, C]).with_attr({"global_symbol": "gather"})
     IRmod = tvm.IRModule({"gather": te_func})
     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -38,9 +38,7 @@ def generate_conv():
     KW = te.var("KW")
     A = te.placeholder((N, CI, H, W), "float32", name="A")
     Wt = te.placeholder((CO, CI, KH, KW), "float32", name="W")
-    C = tvm.relax.frontend.nn.conv2d(
-        A, Wt, padding=1, dilation=1
-    )
+    C = tvm.topi.nn.conv2d(A, Wt, strides=1, padding=1, dilation=1, out_dtype="float32")
     te_func = te.create_prim_func([A, Wt, C]).with_attr({"global_symbol": "conv"})
     IRmod = tvm.IRModule({"conv": te_func})
     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -53,7 +51,7 @@ def generate_unsqueeze():
     M = te.var("M")
     N = te.var("N")
     A = te.placeholder((M, N), "float32", name="A")
-    C = tvm.relax.frontend.nn.unsqueeze(A, dim=1)
+    C = tvm.topi.expand_dims(A, axis=1, num_newaxis=1)
     te_func = te.create_prim_func([A, C]).with_attr({"global_symbol": "unsqueeze"})
     IRmod = tvm.IRModule({"unsqueeze": te_func})
     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -66,7 +64,7 @@ def generate_reshape():
     M = te.var("M")
     N = te.var("N")
     A = te.placeholder((M, N), "float32", name="A")
-    C = tvm.relax.frontend.nn.reshape(A, (M * N,))
+    C = tvm.topi.reshape(A, (M * N,))
     te_func = te.create_prim_func([A, C]).with_attr({"global_symbol": "reshape"})
     IRmod = tvm.IRModule({"reshape": te_func})
     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -80,7 +78,7 @@ def generate_concat():
     N = te.var("N")
     A = te.placeholder((M, N), "float32", name="A")
     B = te.placeholder((M, N), "float32", name="B")
-    C = tvm.relax.frontend.nn.concat([A, B], dim=0)
+    C = tvm.topi.concatenate([A, B], axis=0)
     te_func = te.create_prim_func([A, B, C]).with_attr({"global_symbol": "concat"})
     IRmod = tvm.IRModule({"concat": te_func})
     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -94,7 +92,7 @@ def generate_add():
     N = te.var("N")
     A = te.placeholder((M, N), "float32", name="A")
     B = te.placeholder((M, N), "float32", name="B")
-    C = tvm.relax.frontend.nn.add(A, B)
+    C = tvm.topi.nn.add(A, B)
     te_func = te.create_prim_func([A, B, C]).with_attr({"global_symbol": "add"})
     IRmod = tvm.IRModule({"add": te_func})
     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -108,7 +106,7 @@ def generate_shape():
     N = te.var("N")
     A = te.placeholder((M, N), "float32", name="A")
     # shape is a constant op, so we just output the shape as a tensor
-    out_shape = tvm.relax.frontend.common.topi.shape(A)
+    out_shape = tvm.topi.shape(A)
     te_func = te.create_prim_func([A, out_shape]).with_attr({"global_symbol": "shape"})
     IRmod = tvm.IRModule({"shape": te_func})
     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -120,7 +118,7 @@ def generate_squeeze():
     """Generate a squeeze kernel using tvm.topi.squeeze."""
     M = te.var("M")
     A = te.placeholder((M, 1), "float32", name="A")
-    C = tvm.relax.frontend.nn.squeeze(A, axis=1)
+    C = tvm.topi.squeeze(A, axis=[1])
     te_func = te.create_prim_func([A, C]).with_attr({"global_symbol": "squeeze"})
     IRmod = tvm.IRModule({"squeeze": te_func})
     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -133,7 +131,7 @@ def generate_transpose():
     M = te.var("M")
     N = te.var("N")
     A = te.placeholder((M, N), "float32", name="A")
-    C = tvm.relax.frontend.common.topi.transpose(A, axes=[1, 0])
+    C = tvm.topi.transpose(A)
     te_func = te.create_prim_func([A, C]).with_attr({"global_symbol": "transpose"})
     IRmod = tvm.IRModule({"transpose": te_func})
     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -148,12 +146,26 @@ def generate_matmul():
     N = te.var("N")
     A = te.placeholder((M, K), "float32", name="A")
     B = te.placeholder((K, N), "float32", name="B")
-    C = tvm.relax.frontend.nn.matmul(A, B, out_dtype="float32")
+    C = tvm.topi.nn.matmul(A, B)
     te_func = te.create_prim_func([A, B, C]).with_attr({"global_symbol": "matmul"})
     IRmod = tvm.IRModule({"matmul": te_func})
     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
     os.makedirs("matmul", exist_ok=True)
     with open("matmul/matmul.ll", 'w') as f:
+        f.write(runtime_mod.get_source())
+
+def generate_reorder_output():
+    """Generate a reorder output kernel using tvm.topi.transpose (as a placeholder)."""
+    M = te.var("M")
+    N = te.var("N")
+    A = te.placeholder((M, N), "float32", name="A")
+    # For demonstration, just transpose as a reorder
+    C = tvm.topi.transpose(A)
+    te_func = te.create_prim_func([A, C]).with_attr({"global_symbol": "reorder_output"})
+    IRmod = tvm.IRModule({"reorder_output": te_func})
+    runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+    os.makedirs("reorder_output", exist_ok=True)
+    with open("reorder_output/reorder_output.ll", 'w') as f:
         f.write(runtime_mod.get_source())
 
 def generate_mul():
@@ -162,7 +174,7 @@ def generate_mul():
     N = te.var("N")
     A = te.placeholder((M, N), "float32", name="A")
     B = te.placeholder((M, N), "float32", name="B")
-    C = tvm.relax.frontend.nn.multiply(A, B)
+    C = tvm.topi.multiply(A, B)
     te_func = te.create_prim_func([A, B, C]).with_attr({"global_symbol": "mul"})
     IRmod = tvm.IRModule({"mul": te_func})
     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -170,25 +182,25 @@ def generate_mul():
     with open("mul/mul.ll", 'w') as f:
         f.write(runtime_mod.get_source())
 
-# def generate_slice():
-#     """Generate a slice kernel using tvm.topi.strided_slice."""
-#     M = te.var("M")
-#     N = te.var("N")
-#     A = te.placeholder((M, N), "float32", name="A")
-#     C = tvm.relax.frontend.common.topi.strided_slice(A, begin=[0, 0], end=[M, N//2])
-#     te_func = te.create_prim_func([A, C]).with_attr({"global_symbol": "slice"})
-#     IRmod = tvm.IRModule({"slice": te_func})
-#     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
-#     os.makedirs("slice", exist_ok=True)
-#     with open("slice/slice.ll", 'w') as f:
-#         f.write(runtime_mod.get_source())
+def generate_slice():
+    """Generate a slice kernel using tvm.topi.strided_slice."""
+    M = te.var("M")
+    N = te.var("N")
+    A = te.placeholder((M, N), "float32", name="A")
+    C = tvm.topi.strided_slice(A, begin=[0, 0], end=[M, N//2])
+    te_func = te.create_prim_func([A, C]).with_attr({"global_symbol": "slice"})
+    IRmod = tvm.IRModule({"slice": te_func})
+    runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+    os.makedirs("slice", exist_ok=True)
+    with open("slice/slice.ll", 'w') as f:
+        f.write(runtime_mod.get_source())
 
 def generate_cast():
     """Generate a cast kernel using tvm.topi.cast."""
     M = te.var("M")
     N = te.var("N")
     A = te.placeholder((M, N), "float32", name="A")
-    C = tvm.relax.frontend.common.topi.cast(A, "int32")
+    C = tvm.topi.cast(A, "int32")
     te_func = te.create_prim_func([A, C]).with_attr({"global_symbol": "cast"})
     IRmod = tvm.IRModule({"cast": te_func})
     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -196,25 +208,39 @@ def generate_cast():
     with open("cast/cast.ll", 'w') as f:
         f.write(runtime_mod.get_source())
 
-# def generate_constant_of_shape():
-#     """Generate a constant_of_shape kernel using tvm.topi.full."""
-#     M = te.var("M")
-#     N = te.var("N")
-#     shape = (M, N)
-#     C = tvm.relax.frontend.common.topi.full(shape, 1.0, dtype="float32")
-#     te_func = te.create_prim_func([C]).with_attr({"global_symbol": "constant_of_shape"})
-#     IRmod = tvm.IRModule({"constant_of_shape": te_func})
-#     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
-#     os.makedirs("constant_of_shape", exist_ok=True)
-#     with open("constant_of_shape/constant_of_shape.ll", 'w') as f:
-#         f.write(runtime_mod.get_source())
+def generate_reorder_input():
+    """Generate a reorder input kernel using tvm.topi.transpose (as a placeholder)."""
+    M = te.var("M")
+    N = te.var("N")
+    A = te.placeholder((M, N), "float32", name="A")
+    # For demonstration, just transpose as a reorder
+    C = tvm.topi.transpose(A)
+    te_func = te.create_prim_func([A, C]).with_attr({"global_symbol": "reorder_input"})
+    IRmod = tvm.IRModule({"reorder_input": te_func})
+    runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+    os.makedirs("reorder_input", exist_ok=True)
+    with open("reorder_input/reorder_input.ll", 'w') as f:
+        f.write(runtime_mod.get_source())
+
+def generate_constant_of_shape():
+    """Generate a constant_of_shape kernel using tvm.topi.full."""
+    M = te.var("M")
+    N = te.var("N")
+    shape = (M, N)
+    C = tvm.topi.full(1.0, shape, "float32")
+    te_func = te.create_prim_func([C]).with_attr({"global_symbol": "constant_of_shape"})
+    IRmod = tvm.IRModule({"constant_of_shape": te_func})
+    runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+    os.makedirs("constant_of_shape", exist_ok=True)
+    with open("constant_of_shape/constant_of_shape.ll", 'w') as f:
+        f.write(runtime_mod.get_source())
 
 # def generate_nonzero():
 #     """Generate a nonzero kernel using tvm.topi.nonzero."""
 #     M = te.var("M")
 #     N = te.var("N")
 #     A = te.placeholder((M, N), "float32", name="A")
-#     C = tvm.relax.frontend.common.topi.nonzero(A)
+#     C = tvm.topi.nonzero(A)
 #     te_func = te.create_prim_func([A, C]).with_attr({"global_symbol": "nonzero"})
 #     IRmod = tvm.IRModule({"nonzero": te_func})
 #     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -227,7 +253,7 @@ def generate_relu():
     M = te.var("M")
     N = te.var("N")
     A = te.placeholder((M, N), "float32", name="A")
-    C = tvm.relax.frontend.nn.relu(A)
+    C = tvm.topi.nn.relu(A)
     te_func = te.create_prim_func([A, C]).with_attr({"global_symbol": "relu"})
     IRmod = tvm.IRModule({"relu": te_func})
     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -254,7 +280,7 @@ def generate_sub():
     N = te.var("N")
     A = te.placeholder((M, N), "float32", name="A")
     B = te.placeholder((M, N), "float32", name="B")
-    C = tvm.relax.frontend.common.topi.subtract(A, B)
+    C = tvm.topi.subtract(A, B)
     te_func = te.create_prim_func([A, B, C]).with_attr({"global_symbol": "sub"})
     IRmod = tvm.IRModule({"sub": te_func})
     runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -274,9 +300,15 @@ if __name__ == "__main__":
         generate_squeeze,
         generate_transpose,
         generate_matmul,
+        # generate_reorder_output,
         generate_mul,
+        generate_slice,
         generate_cast,
+        # generate_reorder_input,
+        generate_constant_of_shape,
+        # generate_nonzero,
         generate_relu,
+        # generate_non_max_suppression,
         generate_sub,
     ]
     for func in funcs:

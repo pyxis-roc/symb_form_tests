@@ -1,24 +1,21 @@
 Program:
 Inputs: 
-Graph ID: 17072540686526506878
-  Branch: %0, ID: 17072540686526506878
-  True Ratio: true_ratio_%0
-  False Ratio: (1 - true_ratio_%0)
+  Branch: %0
+  True Ratio: TR_%0
   True Side Graph:
-    Branch: %5, ID: 6044583151998330123
-    True Ratio: true_ratio_%5
-    False Ratio: (1 - true_ratio_%5)
+    Branch: %5
+    True Ratio: TR_%5
     True Side Graph:
-      BasicBlock: %8, ID: 9221333115685516007
-      Count: (true_ratio_%5 * (true_ratio_%0 * 1))
+      BasicBlock: %8
+      Count: (TR_%5 * (TR_%0 * 1))
       Graph is null
     False Side Graph:
       Graph is null
-    BasicBlock: %11, ID: 16412034088848145755
-    Count: (true_ratio_%0 * 1)
+    BasicBlock: %11
+    Count: (TR_%0 * 1)
     Graph is null
   False Side Graph:
     Graph is null
-  BasicBlock: %12, ID: 8483815583191004970
+  BasicBlock: %12
   Count: 1
   Graph is null
