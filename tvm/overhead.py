@@ -735,8 +735,8 @@ def get_dynm_overhead(bench:BenchSpec):
         stderr=subprocess.DEVNULL
     )
     init_end = perf_counter_ns()
-    init_ns = init_end - init_start
 
+    init_ns = init_end - init_start
     return init_ns, exec_ns
 
 
@@ -861,7 +861,8 @@ def save_results_to_csv(filename, labels, results_list: list[list]):
                 row.update(result)
                 writer.writerow(row)
 
-if __name__ == "__main__":
+
+def get_all_results():
 
     matmul_sizes = [64, 128, 256, 512, 1024, 2048, 4096]
     sizes = [64, 128, 256, 512, 1024, 2048, 4096, 8192]
@@ -880,3 +881,7 @@ if __name__ == "__main__":
             results.append(result)
     
     save_results_to_csv("overhead_results.csv", labels, results)
+
+
+if __name__ == "__main__":
+    get_all_results()

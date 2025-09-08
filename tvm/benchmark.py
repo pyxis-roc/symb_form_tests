@@ -5,7 +5,6 @@ import numpy as np
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../script-link')))
 
-from symb_eval import symb_eval, parse_basic_graphs, format_evaluated_graphs
 from compare import parse_instr, parse_symb, compare_results, print_compare_results, print_summary
 import subprocess
 import json
@@ -142,7 +141,10 @@ class ConvBenchSpec(BenchSpec):
             "KH": 7,   # Kernel height
             "KW": 7,   # Kernel width
             "inst_pad_temp_2": 1,
-            "null": 0
+            "null": 0,
+            # 'TR_%for_begin_i3.preheader.us.us.us.us.us.us': 1,
+            # "TR_%for_body_i3.us13.us.us.us.us.us.epil" : 0,
+            # 'inst_smax_1': 226
         }
     
     def get_kernel_llvm_path(self) -> str:
@@ -652,25 +654,25 @@ class TransposeBenchSpec(BenchSpec):
     def get_name(self):
         return "transpose_benchmark"
 
-if __name__ == '__main__':
-    for bench_cls in [
-        ConvBenchSpec,
-        MatmulBenchSpec,
-        ConcatBenchSpec,
-        GatherBenchSpec,
-        ReshapeBenchSpec,
-        ShapeBenchSpec,
-        SqueezeBenchSpec,
-        UnsqueezeBenchSpec,
-        AddBenchSpec,
-        CastBenchSpec,
-        MulBenchSpec,
-        ReluBenchSpec,
-        SubBenchSpec,
-        TransposeBenchSpec,
-    ]:
-        benchmark(bench_cls())
+# if __name__ == '__main__':
+#     for bench_cls in [
+#         ConvBenchSpec,
+#         MatmulBenchSpec,
+#         ConcatBenchSpec,
+#         GatherBenchSpec,
+#         ReshapeBenchSpec,
+#         ShapeBenchSpec,
+#         SqueezeBenchSpec,
+#         UnsqueezeBenchSpec,
+#         AddBenchSpec,
+#         CastBenchSpec,
+#         MulBenchSpec,
+#         ReluBenchSpec,
+#         SubBenchSpec,
+#         TransposeBenchSpec,
+#     ]:
+#         benchmark(bench_cls())
 
 # benchmark(ConvBenchSpec(), debug=True)
-# benchmark(ConcatBenchSpec(), debug=True)
+benchmark(ConcatBenchSpec(), debug=True)
 # benchmark(TransposeBenchSpec(), debug=True)

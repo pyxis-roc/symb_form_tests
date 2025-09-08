@@ -1,6 +1,7 @@
 import matplotlib.pyplot as plt
 import csv
 import numpy as np
+from matplotlib.lines import Line2D
 
 def read_op_data(filename, op_label):
     sizes = []
@@ -28,6 +29,7 @@ def plot_init_time(title, init_labels, init_times):
     plt.title(title)
     plt.xlim(-0.5, len(init_labels) - 0.5)
     plt.tight_layout()
+    # plt.savefig(f"{title.replace(' ', '_').lower()}.png")
     plt.show()
 
 def plot_exec_time(title, sizes, dynm_exec, symb_exec, xlabel):
@@ -41,6 +43,73 @@ def plot_exec_time(title, sizes, dynm_exec, symb_exec, xlabel):
     plt.xticks(sizes, [str(size) if size > 128 else '' for size in sizes])
     plt.legend()
     plt.tight_layout()
+    # plt.savefig(f"{title.replace(' ', '_').lower()}.png")
+    plt.show()
+
+def plot_all_init_times(op_labels, avg_dynm_inits, avg_symb_inits):
+    x = np.arange(len(op_labels))
+    width = 0.35
+    plt.figure(figsize=(8, 5))
+    plt.bar(x - width/2, avg_dynm_inits, width, label='PGO', color='#1f77b4')
+    plt.bar(x + width/2, avg_symb_inits, width, label='Symbolic', color='#ff7f0e')
+    plt.xticks(x, [label.capitalize() for label in op_labels], rotation=30, ha='right')
+    plt.ylabel('Avg Analysis Time (ms)')
+    plt.title('Avg Analysis Time: PGO vs Symbolic (All Ops)')
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+def plot_all_exec_times(op_labels, sizes_list, dynm_exec_list, symb_exec_list):
+    plt.figure(figsize=(9, 5))
+    # Manually define 14 easy-to-distinguish colors (no light/dark pairs)
+    color_set = [
+        "#1f77b4",  # Muted Blue
+        "#ff7f0e",  # Muted Orange
+        "#2ca02c",  # Muted Green
+        "#d62728",  # Muted Red
+        "#9467bd",  # Muted Purple
+        "#8c564b",  # Muted Brown
+        "#e377c2",  # Muted Pink
+        "#7f7f7f",  # Gray
+        "#bcbd22",  # Olive
+        "#17becf",  # Cyan
+        "#aec7e8",  # Light Blue
+        "#ffbb78",  # Light Orange
+        "#98df8a",  # Light Green
+        "#c5b0d5",  # Light Purple
+    ]
+    for i, op_label in enumerate(op_labels):
+        sizes = sizes_list[i]
+        dynm_exec = dynm_exec_list[i]
+        symb_exec = symb_exec_list[i]
+        base_color = color_set[i % len(color_set)]
+        # Dynm: solid line, opaque
+        plt.plot(
+            sizes, dynm_exec, marker='o', linestyle='-',
+            color=base_color, alpha=1.0
+        )
+        # Symb: dashed line, same color, more transparent
+        plt.plot(
+            sizes, symb_exec, marker='s', linestyle='--',
+            color=base_color, alpha=0.7
+        )
+        # Add text label at last data point for dynm
+        plt.text(
+            sizes[-1], dynm_exec[-1],
+            f"{op_label.capitalize()} PGO",
+            color=base_color, fontsize=11, va='bottom', ha='left', alpha=1.0
+        )
+        # Add text label at last data point for symb
+        plt.text(
+            sizes[-1], symb_exec[-1],
+            f"{op_label.capitalize()} Symb",
+            color=base_color, fontsize=11, va='bottom', ha='left', alpha=1.0
+        )
+    plt.xlabel('Size')
+    plt.yscale('log')
+    plt.ylabel('Execution Time (ms)')
+    plt.title('Execution Time: Dynm vs Symb (All Ops)')
+    plt.tight_layout()
     plt.show()
 
 # Example usage for "add"
@@ -50,14 +119,33 @@ with open(filename, "r") as f:
     reader = csv.DictReader(f)
     op_labels = sorted(set(row["label"] for row in reader))
 
+# for op_label in op_labels:
+#     sizes, dynm_init, dynm_exec, symb_init, symb_exec = read_op_data(filename, op_label)
+#     if not sizes:
+#         continue  # Skip if no data for this label
+
+#     # Average init time over all sizes
+#     avg_dynm_init = np.mean(dynm_init)
+#     avg_symb_init = np.mean(symb_init)
+
+#     plot_init_time(f'{op_label.capitalize()} Init Time: Dynm vs Symb', ['dynm', 'symb'], [avg_dynm_init, avg_symb_init])
+#     plot_exec_time(f'{op_label.capitalize()} Execution Time: Dynm vs Symb', sizes, dynm_exec, symb_exec, f'{op_label.capitalize()} Size')
+
+# Plot all init times together
+avg_dynm_inits = []
+avg_symb_inits = []
+sizes_list = []
+dynm_exec_list = []
+symb_exec_list = []
 for op_label in op_labels:
     sizes, dynm_init, dynm_exec, symb_init, symb_exec = read_op_data(filename, op_label)
     if not sizes:
         continue  # Skip if no data for this label
+    avg_dynm_inits.append(np.mean(dynm_init))
+    avg_symb_inits.append(np.mean(symb_init))
+    sizes_list.append(sizes)
+    dynm_exec_list.append(dynm_exec)
+    symb_exec_list.append(symb_exec)
 
-    # Average init time over all sizes
-    avg_dynm_init = np.mean(dynm_init)
-    avg_symb_init = np.mean(symb_init)
-
-    plot_init_time(f'{op_label.capitalize()} Init Time: Dynm vs Symb', ['dynm', 'symb'], [avg_dynm_init, avg_symb_init])
-    plot_exec_time(f'{op_label.capitalize()} Execution Time: Dynm vs Symb', sizes, dynm_exec, symb_exec, f'{op_label.capitalize()} Size')
+plot_all_init_times(op_labels, avg_dynm_inits, avg_symb_inits)
+plot_all_exec_times(op_labels, sizes_list, dynm_exec_list, symb_exec_list)
