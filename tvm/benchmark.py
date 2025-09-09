@@ -231,6 +231,7 @@ class ConcatBenchSpec(BenchSpec):
         return {
             "M": 128,
             "N": 128,  # Number of tensors to concatenate
+            "inst_smax_1": 128 * 2,
         }
 
     def get_kernel_llvm_path(self) -> str:
