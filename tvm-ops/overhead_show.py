@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import csv
 import numpy as np
 from matplotlib.lines import Line2D
+import pandas as pd
+from plotnine import ggplot, aes, geom_bar, theme_minimal, labs, scale_fill_manual, theme, element_text
 
 def read_op_data(filename, op_label):
     sizes = []
@@ -47,17 +49,36 @@ def plot_exec_time(title, sizes, dynm_exec, symb_exec, xlabel):
     plt.show()
 
 def plot_all_init_times(op_labels, avg_dynm_inits, avg_symb_inits):
-    x = np.arange(len(op_labels))
-    width = 0.35
-    plt.figure(figsize=(8, 5))
-    plt.bar(x - width/2, avg_dynm_inits, width, label='PGO', color='#1f77b4')
-    plt.bar(x + width/2, avg_symb_inits, width, label='Symbolic', color='#ff7f0e')
-    plt.xticks(x, [label.capitalize() for label in op_labels], rotation=30, ha='right')
-    plt.ylabel('Avg Analysis Time (ms)')
-    plt.title('Avg Analysis Time: PGO vs Symbolic (All Ops)')
-    plt.legend()
-    plt.tight_layout()
-    plt.show()
+    # Prepare the data for plotnine
+    data = pd.DataFrame({
+        'Operation': [label.capitalize() for label in op_labels] * 2,
+        'Avg Time (ms)': avg_dynm_inits + avg_symb_inits,
+        'Method': ['PGO'] * len(op_labels) + ['Symbolic'] * len(op_labels)
+    })
+
+    # Create the plot
+    plot = (
+        ggplot(data, aes(x='Operation', y='Avg Time (ms)', fill='Method'))
+        + geom_bar(stat='identity', position='dodge', width=0.7)
+        + scale_fill_manual(values=['#1f77b4', '#ff7f0e'])
+        + labs(
+            title='Avg Analysis Time: PGO vs Symbolic (All Ops)',
+            x='Operation',
+            y='Avg Analysis Time (ms)',
+        )
+        + theme_minimal()
+        + theme(
+            axis_text_x=element_text(rotation=30, hjust=1),
+            figure_size=(10, 6),
+            # Move legend inside the plot
+            legend_position=(0.95, 0.9),
+            legend_justification='right'
+        )
+    )
+
+    # Display the plot
+    plot.save("all-init.pdf")
+    print(plot)
 
 def plot_all_exec_times(op_labels, sizes_list, dynm_exec_list, symb_exec_list):
     plt.figure(figsize=(9, 5))

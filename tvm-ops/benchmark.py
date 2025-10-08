@@ -2,7 +2,6 @@ import sys
 import os
 import tvm
 import numpy as np
-
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../script-link')))
 
 from compare import parse_instr, parse_symb, compare_results, print_compare_results, print_summary
@@ -59,7 +58,7 @@ def benchmark(spec: BenchSpec, debug=False):
 
         # run the module with the input data
         tvm_runner.run(module, input)
-        del module
+        # del module
 
         # handle profiling results
         profraw_files = [f for f in os.listdir('.') if f.endswith('.profraw')]
@@ -144,7 +143,7 @@ class ConvBenchSpec(BenchSpec):
             "null": 0,
             # 'TR_%for_begin_i3.preheader.us.us.us.us.us.us': 1,
             # "TR_%for_body_i3.us13.us.us.us.us.us.epil" : 0,
-            # 'inst_smax_1': 226
+            'inst_smax_1': 226
         }
     
     def get_kernel_llvm_path(self) -> str:
@@ -674,6 +673,9 @@ class TransposeBenchSpec(BenchSpec):
 #     ]:
 #         benchmark(bench_cls())
 
-# benchmark(ConvBenchSpec(), debug=True)
-benchmark(ConcatBenchSpec(), debug=True)
+
+
+
+benchmark(ConvBenchSpec(), debug=True)
+# benchmark(ConcatBenchSpec(), debug=True)
 # benchmark(TransposeBenchSpec(), debug=True)
