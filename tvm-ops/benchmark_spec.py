@@ -12,7 +12,7 @@ class TVMRunner(ABC):
 class BenchSpec(ABC):
 
     @abstractmethod
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         """Get the input data for the benchmark."""
     
     @abstractmethod
@@ -35,13 +35,22 @@ class BenchSpec(ABC):
     def get_name(self) -> str:
         """Get the name of the benchmark."""
 
+    @abstractmethod
+    def get_symbolic_patches(self) -> dict:
+        """Get the symbolic patches for the benchmark. e.g. {'inst_smax_1': 128}"""
+
 
 class ConvBenchSpec(BenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
+        self.symbolic_patches = {
+            "inst_pad_temp_2": 1,
+            "null": 0,
+            'inst_smax_1': 226
+        }
 
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         return {
             "N": 1,  # Batch size
             "CI": 3,  # Input channels
@@ -50,15 +59,16 @@ class ConvBenchSpec(BenchSpec):
             "CO": 64,  # Output channels
             "KH": 7,   # Kernel height
             "KW": 7,   # Kernel width
-            "inst_pad_temp_2": 1,
-            "null": 0,
-            # 'TR_%for_begin_i3.preheader.us.us.us.us.us.us': 1,
-            # "TR_%for_body_i3.us13.us.us.us.us.us.epil" : 0,
-            'inst_smax_1': 226
         }
     
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+    
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(self.base_dir, "./conv/conv.ll"))
+        return os.path.join(self.get_directory(), "conv.ll")
     
     def get_directory(self):
         return os.path.abspath(os.path.join(self.base_dir, "./conv"))
@@ -118,16 +128,23 @@ class MatmulBenchSpec(BenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
+        self.symbolic_patches = {}
 
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         return {
             "M": 128,  # Rows of A and C
             "N": 128,  # Columns of B and C
             "K": 128   # Columns of A, Rows of B
         }
 
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(self.get_directory(), "matmul.ll"))
+        return os.path.join(self.get_directory(), "matmul.ll")
 
     def get_directory(self):
         return os.path.abspath(os.path.join(self.base_dir, "./matmul"))
@@ -176,16 +193,25 @@ class ConcatBenchSpec(BenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
+        self.symbolic_patches = {
+            "inst_smax_1": 128 * 2
+        }
 
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         return {
             "M": 128,
             "N": 128,  # Number of tensors to concatenate
             "inst_smax_1": 128 * 2,
         }
 
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(self.base_dir, "./concat/concat.ll"))
+        return os.path.join(self.get_directory(), "concat.ll")
 
     def get_directory(self):
         return os.path.abspath(os.path.join(self.base_dir, "./concat"))
@@ -228,16 +254,23 @@ class GatherBenchSpec(BenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
+        self.symbolic_patches = {}
 
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         return {
             "M": 128,  # Number of elements in the input tensor
             "N": 64,   # Number of indices to gather
             "K": 64
         }
 
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(self.base_dir, "./gather/gather.ll"))
+        return os.path.join(self.get_directory(), "gather.ll")
 
     def get_directory(self):
         return os.path.abspath(os.path.join(self.base_dir, "./gather"))
@@ -285,15 +318,22 @@ class ReshapeBenchSpec(BenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
+        self.symbolic_patches = {}
     
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         return {
             "M": 128,  # Original shape
             "N": 64,   # New shape
         }
 
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(self.base_dir, "./reshape/reshape.ll"))
+        return os.path.join(self.get_directory(), "reshape.ll")
 
     def get_directory(self):
         return os.path.abspath(os.path.join(self.base_dir, "./reshape"))
@@ -336,15 +376,22 @@ class ShapeBenchSpec(BenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
+        self.symbolic_patches = {}
     
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         return {
             "M": 128,  # Shape dimension
             "N": 64,   # Not used in this benchmark
         }
 
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(self.base_dir, "./shape/shape.ll"))
+        return os.path.join(self.get_directory(), "shape.ll")
 
     def get_directory(self):
         return os.path.abspath(os.path.join(self.base_dir, "./shape"))
@@ -388,15 +435,22 @@ class SqueezeBenchSpec(BenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
+        self.symbolic_patches = {}
     
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         return {
             "M": 128,  # Original shape
             "N": 1,    # Squeeze axis size
         }
 
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(self.base_dir, "./squeeze/squeeze.ll"))
+        return os.path.join(self.get_directory(), "squeeze.ll")
 
     def get_directory(self):
         return os.path.abspath(os.path.join(self.base_dir, "./squeeze"))
@@ -439,15 +493,22 @@ class UnsqueezeBenchSpec(BenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
+        self.symbolic_patches = {}
     
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         return {
             "M": 128,  # Original shape
             "N": 1,    # Unsqueeze axis size
         }
 
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(self.base_dir, "./unsqueeze/unsqueeze.ll"))
+        return os.path.join(self.get_directory(), "unsqueeze.ll")
 
     def get_directory(self):
         return os.path.abspath(os.path.join(self.base_dir, "./unsqueeze"))
@@ -493,15 +554,22 @@ class AddBenchSpec(BenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
+        self.symbolic_patches = {}
 
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         return {
             "M": 128,
             "N": 128
         }
 
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(self.base_dir, "./add/add.ll"))
+        return os.path.join(self.get_directory(), "add.ll")
 
     def get_directory(self):
         return os.path.abspath(os.path.join(self.base_dir, "./add"))
@@ -547,15 +615,22 @@ class CastBenchSpec(BenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
+        self.symbolic_patches = {}
 
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         return {
             "M": 128,
             "N": 128
         }
 
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(self.base_dir, "./cast/cast.ll"))
+        return os.path.join(self.get_directory(), "cast.ll")
 
     def get_directory(self):
         return os.path.abspath(os.path.join(self.base_dir, "./cast"))
@@ -598,16 +673,23 @@ class MulBenchSpec(BenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
+        self.symbolic_patches = {}
 
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         return {
             "M": 128,
             "K": 128,
             "N": 128
         }
 
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(self.base_dir, "./mul/mul.ll"))
+        return os.path.join(self.get_directory(), "mul.ll")
 
     def get_directory(self):
         return os.path.abspath(os.path.join(self.base_dir, "./mul"))
@@ -654,15 +736,22 @@ class ReluBenchSpec(BenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
+        self.symbolic_patches = {}
 
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         return {
             "M": 128,
             "N": 128
         }
 
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(self.base_dir, "./relu/relu.ll"))
+        return os.path.join(self.get_directory(), "relu.ll")
 
     def get_directory(self):
         return os.path.abspath(os.path.join(self.base_dir, "./relu"))
@@ -705,15 +794,22 @@ class SubBenchSpec(BenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
+        self.symbolic_patches = {}
 
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         return {
             "M": 128,
             "N": 128
         }
 
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(self.base_dir, "./sub/sub.ll"))
+        return os.path.join(self.get_directory(), "sub.ll")
 
     def get_directory(self):
         return os.path.abspath(os.path.join(self.base_dir, "./sub"))
@@ -759,15 +855,22 @@ class TransposeBenchSpec(BenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
+        self.symbolic_patches = {}
 
-    def get_input(self) -> dict:
+    def get_input_shape(self) -> dict:
         return {
             "M": 128,
             "N": 128
         }
 
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(self.base_dir, "./transpose/transpose.ll"))
+        return os.path.join(self.get_directory(), "transpose.ll")
 
     def get_directory(self):
         return os.path.abspath(os.path.join(self.base_dir, "./transpose"))
@@ -805,3 +908,86 @@ class TransposeBenchSpec(BenchSpec):
 
     def get_name(self):
         return "transpose_benchmark"
+
+class TVMOperatorBenchSpec(BenchSpec):
+    def __init__(self, base_dir: str, operator_name: str, input_shapes: dict, output_shape: tuple, **kwargs):
+        """
+        Generic benchmark specification for any TVM operator.
+        :param base_dir: Base directory for storing generated files.
+        :param operator_name: Name of the TVM operator (e.g., "add", "multiply").
+        :param input_shapes: {'input_0': (shape), 'input_1': (shape), ...} Shapes of the input tensors.
+        :param output_shape: Shape of the output tensor.
+        :param kwargs: Additional arguments for the operator.
+        """
+        super().__init__()
+        self.base_dir = base_dir
+        self.operator_name = operator_name
+        self.input_shapes = input_shapes
+        self.output_shape = output_shape
+        self.kwargs = kwargs
+        self.symbolic_patches = {}
+
+    def get_input_shape(self) -> dict:
+        res = {}
+        for v, shape in self.input_shapes.items():
+            if not isinstance(shape, tuple):
+                raise ValueError(f"Input shape for input_{v} must be a tuple, got {type(shape)}")
+            for i, dim in enumerate(shape):
+                if not isinstance(dim, int):
+                    raise ValueError(f"All dimensions in input shape must be integers, got {type(dim)} in shape {shape}")
+                dim_name = f"{v}_{i}"
+                res[dim_name] = dim
+        return res
+
+    def get_symbolic_patches(self) -> dict:
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
+    def get_kernel_llvm_path(self) -> str:
+        return os.path.join(self.get_directory(), f"{self.operator_name}.ll")
+
+    def get_directory(self):
+        return os.path.abspath(os.path.join(self.base_dir, f"./{self.operator_name}"))
+
+    def generate_kernel(self):
+        """Generate a kernel for the specified operator."""
+        inputs = []
+        for name, shape in self.input_shapes.items():
+            inputs.append(tvm.te.placeholder(shape, "float32", name=name))
+
+        # Split the operator name to handle two levels (e.g., "nn.conv2d")
+        operator_parts = self.operator_name.split(".")
+        operator = tvm.topi
+        for part in operator_parts:
+            operator = getattr(operator, part)  # Resolve each level of the operator
+        
+        output = operator(*inputs, **self.kwargs) # type: ignore
+        te_func = tvm.te.create_prim_func(inputs + [output]).with_attr({"global_symbol": self.operator_name})
+        IRmod = tvm.IRModule({self.operator_name: te_func})
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class GenericRunner(TVMRunner):
+        def __init__(self, operator_name: str, input_shapes:dict, output_shape: tuple):
+            self.operator_name = operator_name
+            self.input_shapes = input_shapes
+            self.output_shape = output_shape
+
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            inputs = []
+            for name, shape in self.input_shapes.items():
+                inputs.append(tvm.nd.array(np.random.randn(*shape).astype("float32"), ctx))
+            output = tvm.nd.array(np.zeros(self.output_shape, dtype="float32"), ctx)
+            func = module[self.operator_name]
+            func(*inputs, output)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.GenericRunner(self.operator_name, self.input_shapes, self.output_shape)
+
+    def get_name(self):
+        return f"{self.operator_name}_benchmark"

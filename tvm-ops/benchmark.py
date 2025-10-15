@@ -14,7 +14,7 @@ def get_exact_count(spec:BenchSpec):
     # prepare paths and inputs
     cwd = os.getcwd()
     bench_dir = spec.get_directory()
-    input = spec.get_input()
+    input_shape = spec.get_input_shape()
     kernel_path = spec.get_kernel_llvm_path()
     tvm_runner = spec.get_tvm_runner()
     
@@ -26,7 +26,7 @@ def get_exact_count(spec:BenchSpec):
     module = tvm.runtime.load_module(os.path.join('./', so_name))
 
     # run the module with the input data
-    tvm_runner.run(module, input)
+    tvm_runner.run(module, input_shape)
     del module
 
     # handle profiling results
@@ -59,7 +59,7 @@ def get_symb_count(spec:BenchSpec):
     # setup
     cwd = os.getcwd()
     bench_dir = spec.get_directory()
-    input = spec.get_input()
+    input_shape = spec.get_input_shape()
     kernel_path = spec.get_kernel_llvm_path()
 
     os.chdir(bench_dir)
@@ -70,7 +70,8 @@ def get_symb_count(spec:BenchSpec):
     symb_input_path = symb_input_file.name
 
     with open(symb_input_path, "w") as f:
-        json.dump(input, f)
+        symb_subs = {**input_shape, **spec.get_symbolic_patches()}
+        json.dump(symb_subs, f)
 
     kernel_base_name = os.path.splitext(os.path.basename(kernel_path))[0]
     func_name = kernel_base_name + "_compute_"
@@ -118,19 +119,12 @@ if __name__ == '__main__':
         MatmulBenchSpec,
         ConcatBenchSpec,
         GatherBenchSpec,
-        ReshapeBenchSpec,
-        ShapeBenchSpec,
-        SqueezeBenchSpec,
-        UnsqueezeBenchSpec,
-        AddBenchSpec,
         CastBenchSpec,
-        MulBenchSpec,
-        ReluBenchSpec,
-        SubBenchSpec,
-        TransposeBenchSpec,
     ]:
         benchmark(bench_cls(base_dir=BASE_DIR), debug=False)
 
-
-# benchmark(ConvBenchSpec(base_dir='.'), debug=True)
-# benchmark(MatmulBenchSpec(base_dir='.'), debug=True)
+    from benchmark_simple import SpecCollection
+    specs = SpecCollection(BASE_DIR).get_specs()
+    for spec in specs:
+        benchmark(spec, debug=False)
+    
