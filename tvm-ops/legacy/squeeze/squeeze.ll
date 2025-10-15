@@ -3,7 +3,7 @@ source_filename = "TVMMod"
 target datalayout = "e-m:e-p270:32:32-p271:32:32-p272:64:64-i64:64-i128:128-f80:128-n8:16:32:64-S128"
 target triple = "x86_64-unknown-linux-gnu"
 
-@__TVMFFIErrorSetRaisedByCStr = linkonce dllexport local_unnamed_addr global ptr null, align 8
+@__TVMFFIErrorSetRaisedFromCStr = linkonce dllexport local_unnamed_addr global ptr null, align 8
 @.str = private constant [58 x i8] c"Assert fail: num_args == 2, squeeze: num_args should be 2\00", align 1
 @.str.1 = private constant [13 x i8] c"RuntimeError\00", align 1
 @.str.2 = private constant [66 x i8] c"Assert fail: not T.isnullptr(args), squeeze: args pointer is NULL\00", align 1
@@ -43,7 +43,7 @@ common.ret:                                       ; preds = %assert_end42, %asse
   ret i32 %common.ret.op, !dbg !15
 
 assert_fail:                                      ; preds = %entry
-  %1 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %1 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %1(ptr nonnull @.str.1, ptr nonnull @.str), !dbg !15
   br label %common.ret, !dbg !15
 
@@ -52,7 +52,7 @@ assert_end:                                       ; preds = %entry
   br i1 %.not, label %assert_fail1, label %assert_end2, !dbg !15, !prof !20
 
 assert_fail1:                                     ; preds = %assert_end
-  %2 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %2 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %2(ptr nonnull @.str.1, ptr nonnull @.str.2), !dbg !15
   br label %common.ret, !dbg !15
 
@@ -72,12 +72,12 @@ switch.early.test:                                ; preds = %assert_end2
   ], !dbg !15
 
 assert_fail3:                                     ; preds = %switch.early.test
-  %4 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %4 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %4(ptr nonnull @.str.1, ptr nonnull @.str.3), !dbg !15
   br label %common.ret, !dbg !15
 
 assert_end4:                                      ; preds = %switch.early.test, %switch.early.test, %switch.early.test, %assert_end2
-  %5 = getelementptr inbounds i8, ptr %args, i64 16, !dbg !15
+  %5 = getelementptr inbounds nuw i8, ptr %args, i64 16, !dbg !15
   %var_T_squeeze.type_index = load i32, ptr %5, align 4, !dbg !15
     #dbg_declare(i32 %var_T_squeeze.type_index, !22, !DIExpression(), !15)
     #dbg_declare(i32 %var_T_squeeze.type_index, !22, !DIExpression(), !15)
@@ -93,46 +93,46 @@ switch.early.test43:                              ; preds = %assert_end4
   ], !dbg !15
 
 assert_fail5:                                     ; preds = %switch.early.test43
-  %7 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %7 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %7(ptr nonnull @.str.1, ptr nonnull @.str.4), !dbg !15
   br label %common.ret, !dbg !15
 
 assert_end6:                                      ; preds = %switch.early.test43, %switch.early.test43, %switch.early.test43, %assert_end4
-  %8 = getelementptr inbounds i8, ptr %args, i64 8, !dbg !15
+  %8 = getelementptr inbounds nuw i8, ptr %args, i64 8, !dbg !15
   %9 = load ptr, ptr %8, align 8, !dbg !15
   %10 = icmp eq i32 %var_A.type_index.fr, 72, !dbg !15
   %var_A.idx = select i1 %10, i64 16, i64 0, !dbg !15
-  %var_A = getelementptr inbounds i8, ptr %9, i64 %var_A.idx, !dbg !15
+  %var_A = getelementptr inbounds nuw i8, ptr %9, i64 %var_A.idx, !dbg !15
     #dbg_declare(ptr %var_A, !23, !DIExpression(), !15)
     #dbg_declare(ptr %var_A, !23, !DIExpression(), !15)
-  %11 = getelementptr inbounds i8, ptr %args, i64 24, !dbg !15
+  %11 = getelementptr inbounds nuw i8, ptr %args, i64 24, !dbg !15
   %12 = load ptr, ptr %11, align 8, !dbg !15
   %13 = icmp eq i32 %var_T_squeeze.type_index.fr, 72, !dbg !15
   %var_T_squeeze.idx = select i1 %13, i64 16, i64 0, !dbg !15
-  %var_T_squeeze = getelementptr inbounds i8, ptr %12, i64 %var_T_squeeze.idx, !dbg !15
+  %var_T_squeeze = getelementptr inbounds nuw i8, ptr %12, i64 %var_T_squeeze.idx, !dbg !15
     #dbg_declare(ptr %var_T_squeeze, !24, !DIExpression(), !15)
     #dbg_declare(ptr %var_T_squeeze, !24, !DIExpression(), !15)
   %.not44 = icmp eq ptr %9, null, !dbg !15
   br i1 %.not44, label %assert_fail7, label %assert_end8, !dbg !15, !prof !20
 
 assert_fail7:                                     ; preds = %assert_end6
-  %14 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %14 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %14(ptr nonnull @.str.1, ptr nonnull @.str.5), !dbg !15
   br label %common.ret, !dbg !15
 
 assert_end8:                                      ; preds = %assert_end6
-  %15 = getelementptr inbounds i8, ptr %var_A, i64 16, !dbg !15
+  %15 = getelementptr inbounds nuw i8, ptr %var_A, i64 16, !dbg !15
   %16 = load i32, ptr %15, align 4, !dbg !15
   %17 = icmp eq i32 %16, 2, !dbg !15
   br i1 %17, label %assert_end10, label %assert_fail9, !dbg !15, !prof !16
 
 assert_fail9:                                     ; preds = %assert_end8
-  %18 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %18 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %18(ptr nonnull @.str.1, ptr nonnull @.str.6), !dbg !15
   br label %common.ret, !dbg !15
 
 assert_end10:                                     ; preds = %assert_end8
-  %19 = getelementptr inbounds i8, ptr %var_A, i64 24, !dbg !15
+  %19 = getelementptr inbounds nuw i8, ptr %var_A, i64 24, !dbg !15
   %squeeze.var_A.shape = load ptr, ptr %19, align 8, !dbg !15
     #dbg_declare(ptr %squeeze.var_A.shape, !25, !DIExpression(), !15)
     #dbg_declare(ptr %squeeze.var_A.shape, !25, !DIExpression(), !15)
@@ -140,11 +140,11 @@ assert_end10:                                     ; preds = %assert_end8
   %M = trunc i64 %20 to i32, !dbg !15
     #dbg_declare(i32 %M, !38, !DIExpression(), !15)
     #dbg_declare(i32 %M, !38, !DIExpression(), !15)
-  %21 = getelementptr inbounds i8, ptr %var_A, i64 32, !dbg !15
+  %21 = getelementptr inbounds nuw i8, ptr %var_A, i64 32, !dbg !15
   %squeeze.var_A.strides = load ptr, ptr %21, align 8, !dbg !15
     #dbg_declare(ptr %squeeze.var_A.strides, !39, !DIExpression(), !15)
     #dbg_declare(ptr %squeeze.var_A.strides, !39, !DIExpression(), !15)
-  %22 = getelementptr inbounds i8, ptr %var_A, i64 12, !dbg !15
+  %22 = getelementptr inbounds nuw i8, ptr %var_A, i64 12, !dbg !15
   %dev_id = load i32, ptr %22, align 4, !dbg !15
     #dbg_declare(i32 %dev_id, !40, !DIExpression(), !15)
     #dbg_declare(i32 %dev_id, !40, !DIExpression(), !15)
@@ -156,27 +156,27 @@ assert_end10:                                     ; preds = %assert_end8
   br i1 %.not45, label %assert_fail11, label %assert_end12, !dbg !15, !prof !20
 
 assert_fail11:                                    ; preds = %assert_end10
-  %23 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %23 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %23(ptr nonnull @.str.1, ptr nonnull @.str.7), !dbg !15
   br label %common.ret, !dbg !15
 
 assert_end12:                                     ; preds = %assert_end10
-  %24 = getelementptr inbounds i8, ptr %var_T_squeeze, i64 16, !dbg !15
+  %24 = getelementptr inbounds nuw i8, ptr %var_T_squeeze, i64 16, !dbg !15
   %25 = load i32, ptr %24, align 4, !dbg !15
   %26 = icmp eq i32 %25, 1, !dbg !15
   br i1 %26, label %assert_end14, label %assert_fail13, !dbg !15, !prof !16
 
 assert_fail13:                                    ; preds = %assert_end12
-  %27 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %27 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %27(ptr nonnull @.str.1, ptr nonnull @.str.8), !dbg !15
   br label %common.ret, !dbg !15
 
 assert_end14:                                     ; preds = %assert_end12
-  %28 = getelementptr inbounds i8, ptr %var_T_squeeze, i64 24, !dbg !15
+  %28 = getelementptr inbounds nuw i8, ptr %var_T_squeeze, i64 24, !dbg !15
   %squeeze.var_T_squeeze.shape = load ptr, ptr %28, align 8, !dbg !15
     #dbg_declare(ptr %squeeze.var_T_squeeze.shape, !44, !DIExpression(), !15)
     #dbg_declare(ptr %squeeze.var_T_squeeze.shape, !44, !DIExpression(), !15)
-  %29 = getelementptr inbounds i8, ptr %var_T_squeeze, i64 32, !dbg !15
+  %29 = getelementptr inbounds nuw i8, ptr %var_T_squeeze, i64 32, !dbg !15
   %squeeze.var_T_squeeze.strides = load ptr, ptr %29, align 8, !dbg !15
     #dbg_declare(ptr %squeeze.var_T_squeeze.strides, !45, !DIExpression(), !15)
     #dbg_declare(ptr %squeeze.var_T_squeeze.strides, !45, !DIExpression(), !15)
@@ -184,13 +184,13 @@ assert_end14:                                     ; preds = %assert_end12
     #dbg_declare(ptr %T_squeeze, !46, !DIExpression(), !15)
     #dbg_declare(ptr %T_squeeze, !46, !DIExpression(), !15)
   call void @llvm.assume(i1 true) [ "align"(ptr %T_squeeze, i64 64) ], !dbg !15
-  %30 = getelementptr inbounds i8, ptr %var_A, i64 22, !dbg !15
+  %30 = getelementptr inbounds nuw i8, ptr %var_A, i64 22, !dbg !15
   %31 = load i16, ptr %30, align 2, !dbg !15
   %32 = icmp eq i16 %31, 1, !dbg !15
-  %33 = getelementptr inbounds i8, ptr %var_A, i64 21, !dbg !15
+  %33 = getelementptr inbounds nuw i8, ptr %var_A, i64 21, !dbg !15
   %34 = load i8, ptr %33, align 1, !dbg !15
   %35 = icmp eq i8 %34, 32, !dbg !15
-  %36 = getelementptr inbounds i8, ptr %var_A, i64 20, !dbg !15
+  %36 = getelementptr inbounds nuw i8, ptr %var_A, i64 20, !dbg !15
   %37 = load i8, ptr %36, align 1, !dbg !15
   %38 = icmp eq i8 %37, 2, !dbg !15
   %39 = and i1 %35, %38, !dbg !15
@@ -198,19 +198,19 @@ assert_end14:                                     ; preds = %assert_end12
   br i1 %40, label %assert_end16, label %assert_fail15, !dbg !15, !prof !16
 
 assert_fail15:                                    ; preds = %assert_end14
-  %41 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %41 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %41(ptr nonnull @.str.1, ptr nonnull @.str.9), !dbg !15
   br label %common.ret, !dbg !15
 
 assert_end16:                                     ; preds = %assert_end14
-  %42 = getelementptr inbounds i8, ptr %squeeze.var_A.shape, i64 8, !dbg !15
+  %42 = getelementptr inbounds nuw i8, ptr %squeeze.var_A.shape, i64 8, !dbg !15
   %43 = load i64, ptr %42, align 8, !dbg !15, !tbaa !47
   %44 = and i64 %43, 4294967295, !dbg !15
   %45 = icmp eq i64 %44, 1, !dbg !15
   br i1 %45, label %assert_end18, label %assert_fail17, !dbg !15, !prof !16
 
 assert_fail17:                                    ; preds = %assert_end16
-  %46 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %46 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %46(ptr nonnull @.str.1, ptr nonnull @.str.10), !dbg !15
   br label %common.ret, !dbg !15
 
@@ -227,29 +227,29 @@ if_then:                                          ; preds = %assert_end18
   br i1 %51, label %if_end, label %assert_fail19, !dbg !15, !prof !16
 
 if_end:                                           ; preds = %if_then, %assert_end18
-  %52 = getelementptr inbounds i8, ptr %var_A, i64 40, !dbg !15
+  %52 = getelementptr inbounds nuw i8, ptr %var_A, i64 40, !dbg !15
   %53 = load i64, ptr %52, align 8, !dbg !15
   %54 = icmp eq i64 %53, 0, !dbg !15
   br i1 %54, label %assert_end22, label %assert_fail21, !dbg !15, !prof !16
 
 assert_fail19:                                    ; preds = %if_then
-  %55 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %55 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %55(ptr nonnull @.str.1, ptr nonnull @.str.11), !dbg !15
   br label %common.ret, !dbg !15
 
 assert_fail21:                                    ; preds = %if_end
-  %56 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %56 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %56(ptr nonnull @.str.1, ptr nonnull @.str.12), !dbg !15
   br label %common.ret, !dbg !15
 
 assert_end22:                                     ; preds = %if_end
-  %57 = getelementptr inbounds i8, ptr %var_A, i64 8, !dbg !15
+  %57 = getelementptr inbounds nuw i8, ptr %var_A, i64 8, !dbg !15
   %58 = load i32, ptr %57, align 4, !dbg !15
   %59 = icmp eq i32 %58, 1, !dbg !15
   br i1 %59, label %assert_end24, label %assert_fail23, !dbg !15, !prof !16
 
 assert_fail23:                                    ; preds = %assert_end22
-  %60 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %60 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %60(ptr nonnull @.str.1, ptr nonnull @.str.13), !dbg !15
   br label %common.ret, !dbg !15
 
@@ -260,18 +260,18 @@ assert_end24:                                     ; preds = %assert_end22
   br i1 %63, label %assert_end26, label %assert_fail25, !dbg !15, !prof !16
 
 assert_fail25:                                    ; preds = %assert_end24
-  %64 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %64 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %64(ptr nonnull @.str.1, ptr nonnull @.str.14), !dbg !15
   br label %common.ret, !dbg !15
 
 assert_end26:                                     ; preds = %assert_end24
-  %65 = getelementptr inbounds i8, ptr %var_T_squeeze, i64 22, !dbg !15
+  %65 = getelementptr inbounds nuw i8, ptr %var_T_squeeze, i64 22, !dbg !15
   %66 = load i16, ptr %65, align 2, !dbg !15
   %67 = icmp eq i16 %66, 1, !dbg !15
-  %68 = getelementptr inbounds i8, ptr %var_T_squeeze, i64 21, !dbg !15
+  %68 = getelementptr inbounds nuw i8, ptr %var_T_squeeze, i64 21, !dbg !15
   %69 = load i8, ptr %68, align 1, !dbg !15
   %70 = icmp eq i8 %69, 32, !dbg !15
-  %71 = getelementptr inbounds i8, ptr %var_T_squeeze, i64 20, !dbg !15
+  %71 = getelementptr inbounds nuw i8, ptr %var_T_squeeze, i64 20, !dbg !15
   %72 = load i8, ptr %71, align 1, !dbg !15
   %73 = icmp eq i8 %72, 2, !dbg !15
   %74 = and i1 %70, %73, !dbg !15
@@ -279,7 +279,7 @@ assert_end26:                                     ; preds = %assert_end24
   br i1 %75, label %assert_end28, label %assert_fail27, !dbg !15, !prof !16
 
 assert_fail27:                                    ; preds = %assert_end26
-  %76 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %76 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %76(ptr nonnull @.str.1, ptr nonnull @.str.15), !dbg !15
   br label %common.ret, !dbg !15
 
@@ -290,7 +290,7 @@ assert_end28:                                     ; preds = %assert_end26
   br i1 %79, label %assert_end30, label %assert_fail29, !dbg !15, !prof !16
 
 assert_fail29:                                    ; preds = %assert_end28
-  %80 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %80 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %80(ptr nonnull @.str.1, ptr nonnull @.str.16), !dbg !15
   br label %common.ret, !dbg !15
 
@@ -307,40 +307,40 @@ if_then31:                                        ; preds = %assert_end30
   br i1 %85, label %if_end32, label %assert_fail33, !dbg !15, !prof !16
 
 if_end32:                                         ; preds = %if_then31, %assert_end30
-  %86 = getelementptr inbounds i8, ptr %var_T_squeeze, i64 40, !dbg !15
+  %86 = getelementptr inbounds nuw i8, ptr %var_T_squeeze, i64 40, !dbg !15
   %87 = load i64, ptr %86, align 8, !dbg !15
   %88 = icmp eq i64 %87, 0, !dbg !15
   br i1 %88, label %assert_end36, label %assert_fail35, !dbg !15, !prof !16
 
 assert_fail33:                                    ; preds = %if_then31
-  %89 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %89 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %89(ptr nonnull @.str.1, ptr nonnull @.str.17), !dbg !15
   br label %common.ret, !dbg !15
 
 assert_fail35:                                    ; preds = %if_end32
-  %90 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %90 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %90(ptr nonnull @.str.1, ptr nonnull @.str.18), !dbg !15
   br label %common.ret, !dbg !15
 
 assert_end36:                                     ; preds = %if_end32
-  %91 = getelementptr inbounds i8, ptr %var_T_squeeze, i64 8, !dbg !15
+  %91 = getelementptr inbounds nuw i8, ptr %var_T_squeeze, i64 8, !dbg !15
   %92 = load i32, ptr %91, align 4, !dbg !15
   %93 = icmp eq i32 %92, 1, !dbg !15
   br i1 %93, label %assert_end38, label %assert_fail37, !dbg !15, !prof !16
 
 assert_fail37:                                    ; preds = %assert_end36
-  %94 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %94 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %94(ptr nonnull @.str.1, ptr nonnull @.str.19), !dbg !15
   br label %common.ret, !dbg !15
 
 assert_end38:                                     ; preds = %assert_end36
-  %95 = getelementptr inbounds i8, ptr %var_T_squeeze, i64 12, !dbg !15
+  %95 = getelementptr inbounds nuw i8, ptr %var_T_squeeze, i64 12, !dbg !15
   %96 = load i32, ptr %95, align 4, !dbg !15
   %97 = icmp eq i32 %dev_id, %96, !dbg !15
   br i1 %97, label %assert_end40, label %assert_fail39, !dbg !15, !prof !16
 
 assert_fail39:                                    ; preds = %assert_end38
-  %98 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %98 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %98(ptr nonnull @.str.1, ptr nonnull @.str.20), !dbg !15
   br label %common.ret, !dbg !15
 
@@ -350,7 +350,7 @@ assert_end40:                                     ; preds = %assert_end38
   br i1 %100, label %assert_end42, label %assert_fail41, !dbg !15, !prof !16
 
 assert_fail41:                                    ; preds = %assert_end40
-  %101 = load ptr, ptr @__TVMFFIErrorSetRaisedByCStr, align 8, !dbg !15, !tbaa !17
+  %101 = load ptr, ptr @__TVMFFIErrorSetRaisedFromCStr, align 8, !dbg !15, !tbaa !17
   tail call void %101(ptr nonnull @.str.1, ptr nonnull @.str.21), !dbg !15
   br label %common.ret, !dbg !15
 
@@ -398,7 +398,7 @@ b1:                                               ; preds = %b0
   %v5 = lshr i32 %v0, 13
   %v7 = add nsw i32 %v5, -114688
   %v8 = and i32 %v0, 8191
-  %v9 = icmp ugt i32 %v8, 4096
+  %v9 = icmp samesign ugt i32 %v8, 4096
   br i1 %v9, label %b2, label %b3
 
 b2:                                               ; preds = %b1
@@ -415,7 +415,7 @@ b4:                                               ; preds = %b3
   br label %b13
 
 b5:                                               ; preds = %b0
-  %v15 = icmp ugt i32 %v1, 2139095040
+  %v15 = icmp samesign ugt i32 %v1, 2139095040
   br i1 %v15, label %b6, label %b7
 
 b6:                                               ; preds = %b5
@@ -425,11 +425,11 @@ b6:                                               ; preds = %b5
   br label %b13
 
 b7:                                               ; preds = %b5
-  %v19 = icmp ugt i32 %v1, 1199570943
+  %v19 = icmp samesign ugt i32 %v1, 1199570943
   br i1 %v19, label %b13, label %b8
 
 b8:                                               ; preds = %b7
-  %v20 = icmp ult i32 %v1, 754974720
+  %v20 = icmp samesign ult i32 %v1, 754974720
   br i1 %v20, label %b13, label %b9
 
 b9:                                               ; preds = %b8
@@ -445,7 +445,7 @@ b9:                                               ; preds = %b8
   %v30 = lshr i32 %v28, 13
   %v31 = and i32 %v28, 8191
   %v32 = or i32 %v31, %v29
-  %v33 = icmp ugt i32 %v32, 4096
+  %v33 = icmp samesign ugt i32 %v32, 4096
   br i1 %v33, label %b10, label %b11
 
 b10:                                              ; preds = %b9
@@ -487,7 +487,7 @@ b1:                                               ; preds = %b0
   br label %b6
 
 b2:                                               ; preds = %b0
-  %v7 = icmp ugt i16 %v1, 31743
+  %v7 = icmp samesign ugt i16 %v1, 31743
   br i1 %v7, label %b3, label %b4
 
 b3:                                               ; preds = %b2
@@ -500,21 +500,21 @@ b4:                                               ; preds = %b2
   br i1 %v10, label %b6, label %b5
 
 b5:                                               ; preds = %b4
-  %v11 = icmp ult i16 %v1, 256
+  %v11 = icmp samesign ult i16 %v1, 256
   %v12 = lshr i32 %v2, 8
   %v13 = select i1 %v11, i32 %v2, i32 %v12
   %v14 = select i1 %v11, i32 32, i32 24
-  %v15 = icmp ult i32 %v13, 16
+  %v15 = icmp samesign ult i32 %v13, 16
   %v16 = lshr i32 %v13, 4
   %v17 = add nsw i32 %v14, -4
   %v18 = select i1 %v15, i32 %v13, i32 %v16
   %v19 = select i1 %v15, i32 %v14, i32 %v17
-  %v20 = icmp ult i32 %v18, 4
+  %v20 = icmp samesign ult i32 %v18, 4
   %v21 = lshr i32 %v18, 2
   %v22 = add nsw i32 %v19, -2
   %v23 = select i1 %v20, i32 %v18, i32 %v21
   %v24 = select i1 %v20, i32 %v19, i32 %v22
-  %v25 = icmp ult i32 %v23, 2
+  %v25 = icmp samesign ult i32 %v23, 2
   %v26 = sub nsw i32 0, %v23
   %v27 = select i1 %v25, i32 %v26, i32 -2
   %v28 = add nsw i32 %v27, %v24
@@ -585,15 +585,15 @@ attributes #5 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
 !26 = !DIDerivedType(tag: DW_TAG_pointer_type, baseType: !27)
 !27 = !DIBasicType(name: "int64", size: 64, encoding: DW_ATE_signed)
 !28 = !{!29, !29, i64 0}
-!29 = !{!"0x198d3370.w8.b0", !30, i64 0}
-!30 = !{!"0x198d3370.w16.b0", !31, i64 0}
-!31 = !{!"0x198d3370.w32.b0", !32, i64 0}
-!32 = !{!"0x198d3370.w64.b0", !33, i64 0}
-!33 = !{!"0x198d3370.w128.b0", !34, i64 0}
-!34 = !{!"0x198d3370.w256.b0", !35, i64 0}
-!35 = !{!"0x198d3370.w512.b0", !36, i64 0}
-!36 = !{!"0x198d3370.w1024.b0", !37, i64 0}
-!37 = !{!"0x198d3370", !19, i64 0}
+!29 = !{!"0x5af4dbd220a0.w8.b0", !30, i64 0}
+!30 = !{!"0x5af4dbd220a0.w16.b0", !31, i64 0}
+!31 = !{!"0x5af4dbd220a0.w32.b0", !32, i64 0}
+!32 = !{!"0x5af4dbd220a0.w64.b0", !33, i64 0}
+!33 = !{!"0x5af4dbd220a0.w128.b0", !34, i64 0}
+!34 = !{!"0x5af4dbd220a0.w256.b0", !35, i64 0}
+!35 = !{!"0x5af4dbd220a0.w512.b0", !36, i64 0}
+!36 = !{!"0x5af4dbd220a0.w1024.b0", !37, i64 0}
+!37 = !{!"0x5af4dbd220a0", !19, i64 0}
 !38 = !DILocalVariable(name: "M", scope: !5, file: !1, type: !8)
 !39 = !DILocalVariable(name: "squeeze.var_A.strides", scope: !5, file: !1, type: !26)
 !40 = !DILocalVariable(name: "dev_id", scope: !5, file: !1, type: !8)
@@ -604,37 +604,37 @@ attributes #5 = { nocallback nofree nounwind willreturn memory(argmem: readwrite
 !45 = !DILocalVariable(name: "squeeze.var_T_squeeze.strides", scope: !5, file: !1, type: !26)
 !46 = !DILocalVariable(name: "T_squeeze", scope: !5, file: !1, type: !42)
 !47 = !{!48, !48, i64 0}
-!48 = !{!"0x198d3370.w8.b8", !30, i64 0}
+!48 = !{!"0x5af4dbd220a0.w8.b8", !30, i64 0}
 !49 = !{!50, !50, i64 0}
-!50 = !{!"0x19962a90.w8.b0", !51, i64 0}
-!51 = !{!"0x19962a90.w16.b0", !52, i64 0}
-!52 = !{!"0x19962a90.w32.b0", !53, i64 0}
-!53 = !{!"0x19962a90.w64.b0", !54, i64 0}
-!54 = !{!"0x19962a90.w128.b0", !55, i64 0}
-!55 = !{!"0x19962a90.w256.b0", !56, i64 0}
-!56 = !{!"0x19962a90.w512.b0", !57, i64 0}
-!57 = !{!"0x19962a90.w1024.b0", !58, i64 0}
-!58 = !{!"0x19962a90", !19, i64 0}
+!50 = !{!"0x5af4dbd4ed20.w8.b0", !51, i64 0}
+!51 = !{!"0x5af4dbd4ed20.w16.b0", !52, i64 0}
+!52 = !{!"0x5af4dbd4ed20.w32.b0", !53, i64 0}
+!53 = !{!"0x5af4dbd4ed20.w64.b0", !54, i64 0}
+!54 = !{!"0x5af4dbd4ed20.w128.b0", !55, i64 0}
+!55 = !{!"0x5af4dbd4ed20.w256.b0", !56, i64 0}
+!56 = !{!"0x5af4dbd4ed20.w512.b0", !57, i64 0}
+!57 = !{!"0x5af4dbd4ed20.w1024.b0", !58, i64 0}
+!58 = !{!"0x5af4dbd4ed20", !19, i64 0}
 !59 = !{!60, !60, i64 0}
-!60 = !{!"0x1993fa00.w8.b0", !61, i64 0}
-!61 = !{!"0x1993fa00.w16.b0", !62, i64 0}
-!62 = !{!"0x1993fa00.w32.b0", !63, i64 0}
-!63 = !{!"0x1993fa00.w64.b0", !64, i64 0}
-!64 = !{!"0x1993fa00.w128.b0", !65, i64 0}
-!65 = !{!"0x1993fa00.w256.b0", !66, i64 0}
-!66 = !{!"0x1993fa00.w512.b0", !67, i64 0}
-!67 = !{!"0x1993fa00.w1024.b0", !68, i64 0}
-!68 = !{!"0x1993fa00", !19, i64 0}
+!60 = !{!"0x5af4dbcb7dd0.w8.b0", !61, i64 0}
+!61 = !{!"0x5af4dbcb7dd0.w16.b0", !62, i64 0}
+!62 = !{!"0x5af4dbcb7dd0.w32.b0", !63, i64 0}
+!63 = !{!"0x5af4dbcb7dd0.w64.b0", !64, i64 0}
+!64 = !{!"0x5af4dbcb7dd0.w128.b0", !65, i64 0}
+!65 = !{!"0x5af4dbcb7dd0.w256.b0", !66, i64 0}
+!66 = !{!"0x5af4dbcb7dd0.w512.b0", !67, i64 0}
+!67 = !{!"0x5af4dbcb7dd0.w1024.b0", !68, i64 0}
+!68 = !{!"0x5af4dbcb7dd0", !19, i64 0}
 !69 = !{!70, !70, i64 0}
-!70 = !{!"0x19984b20.w8.b0", !71, i64 0}
-!71 = !{!"0x19984b20.w16.b0", !72, i64 0}
-!72 = !{!"0x19984b20.w32.b0", !73, i64 0}
-!73 = !{!"0x19984b20.w64.b0", !74, i64 0}
-!74 = !{!"0x19984b20.w128.b0", !75, i64 0}
-!75 = !{!"0x19984b20.w256.b0", !76, i64 0}
-!76 = !{!"0x19984b20.w512.b0", !77, i64 0}
-!77 = !{!"0x19984b20.w1024.b0", !78, i64 0}
-!78 = !{!"0x19984b20", !19, i64 0}
+!70 = !{!"0x5af4dbc9f840.w8.b0", !71, i64 0}
+!71 = !{!"0x5af4dbc9f840.w16.b0", !72, i64 0}
+!72 = !{!"0x5af4dbc9f840.w32.b0", !73, i64 0}
+!73 = !{!"0x5af4dbc9f840.w64.b0", !74, i64 0}
+!74 = !{!"0x5af4dbc9f840.w128.b0", !75, i64 0}
+!75 = !{!"0x5af4dbc9f840.w256.b0", !76, i64 0}
+!76 = !{!"0x5af4dbc9f840.w512.b0", !77, i64 0}
+!77 = !{!"0x5af4dbc9f840.w1024.b0", !78, i64 0}
+!78 = !{!"0x5af4dbc9f840", !19, i64 0}
 !79 = distinct !DISubprogram(name: "squeeze_compute_", scope: !1, file: !1, type: !80, flags: DIFlagPrototyped, spFlags: DISPFlagLocalToUnit | DISPFlagDefinition | DISPFlagOptimized, unit: !0, retainedNodes: !82)
 !80 = !DISubroutineType(cc: DW_CC_nocall, types: !81)
 !81 = !{!8, !8, !42, !42}
