@@ -3,3 +3,4 @@ __pycache__
 *.so
 .__*.pdf
 pyrightconfig.json
+all_ops/

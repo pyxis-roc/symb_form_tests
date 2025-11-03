@@ -8,7 +8,7 @@ from compare import parse_instr, parse_symb, compare_results, print_compare_resu
 import subprocess
 import json
 import tempfile
-from benchmark_spec import *
+from benchmark_spec import BenchSpec
 
 def get_exact_count(spec:BenchSpec):
     # prepare paths and inputs
@@ -90,8 +90,9 @@ def get_symb_count(spec:BenchSpec):
 def benchmark(spec: BenchSpec, debug=False):
     print(f"Running benchmark: {spec.get_name()}")
 
-    if not os.path.exists(spec.get_directory()):
-        os.makedirs(spec.get_directory())
+    if not os.path.exists(spec.get_kernel_llvm_path()):
+        if not os.path.exists(spec.get_directory()):
+            os.makedirs(spec.get_directory())
         spec.generate_kernel()
 
     instr_counts = get_exact_count(spec)
@@ -114,17 +115,18 @@ if __name__ == '__main__':
     args = parser.parse_args()
     BASE_DIR = args.base_dir
 
-    for bench_cls in [
-        ConvBenchSpec,
-        MatmulBenchSpec,
-        ConcatBenchSpec,
-        GatherBenchSpec,
-        CastBenchSpec,
-    ]:
-        benchmark(bench_cls(base_dir=BASE_DIR), debug=False)
+    from benchmark_adhoc import *
+    from benchmark_simple import *
+
+    # for bench_cls in [
+    #     ConvBenchSpec,
+    #     MatmulBenchSpec,
+    #     ConcatBenchSpec,
+    # ]:
+    #     benchmark(bench_cls(base_dir=BASE_DIR), debug=False)
 
     from benchmark_simple import SpecCollection
     specs = SpecCollection(BASE_DIR).get_specs()
     for spec in specs:
-        benchmark(spec, debug=False)
+        benchmark(spec, debug=True)
     
