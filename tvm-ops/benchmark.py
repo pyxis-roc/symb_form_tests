@@ -116,17 +116,44 @@ if __name__ == '__main__':
     BASE_DIR = args.base_dir
 
     from benchmark_adhoc import *
-    from benchmark_simple import *
 
-    # for bench_cls in [
-    #     ConvBenchSpec,
-    #     MatmulBenchSpec,
-    #     ConcatBenchSpec,
-    # ]:
-    #     benchmark(bench_cls(base_dir=BASE_DIR), debug=False)
+    for bench_cls in [
+        # TransposeBenchSpec,
+        # ConvBenchSpec,
+        # MatmulBenchSpec,
+        # ConcatBenchSpec,
+        # GatherBenchSpec,
+        # ReshapeBenchSpec,
+        # ShapeBenchSpec,
+        # SqueezeBenchSpec,
+        # UnsqueezeBenchSpec,
+        # AddBenchSpec,
+        # CastBenchSpec,
+        # MulBenchSpec,
+        # ReluBenchSpec,
+        # SubBenchSpec,
+        # DivBenchSpec,
+        # SumBenchSpec,
+        # PowBenchSpec,
+        # SqrtBenchSpec,
+        # ClipBenchSpec,
+        # LeakyReluBenchSpec,
+        # GemmBenchSpec,
+        # TanhBenchSpec,
+        # ExpBenchSpec,
+        # LogBenchSpec,
+        # MaxPoolBenchSpec,
+        # NonZeroBenchSpec,
+        # SoftmaxBenchSpec,
+        # BatchNormalizationBenchSpec,
+        # InstanceNormalizationBenchSpec,
+        PadBenchSpec,
+    ]:
+        benchmark(bench_cls(base_dir=BASE_DIR), debug=True)
+    
+    exit()
 
     from benchmark_simple import SpecCollection
     specs = SpecCollection(BASE_DIR).get_specs()
     for spec in specs:
-        benchmark(spec, debug=True)
-    
+        benchmark(spec, debug=False)

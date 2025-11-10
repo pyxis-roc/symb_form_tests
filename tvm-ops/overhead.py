@@ -30,6 +30,10 @@ class BenchSpec(ABC):
     @abstractmethod
     def get_kernel_llvm_path(self) -> str:
         """Get the path to the LLVM kernel."""
+
+    @abstractmethod
+    def get_pgo_llvm_path(self) -> str:
+        """Get the path to the PGO LLVM kernel."""
     
     @abstractmethod
     def get_tvm_runner(self) -> TVMRunner:
@@ -62,10 +66,13 @@ class ConvBenchSpec(BenchSpec):
         return self.input
     
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./conv/conv.ll"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/conv/conv.ll"))
+    
+    def get_pgo_llvm_path(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/conv/conv-instr.so"))
     
     def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./conv"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/conv"))
 
     class ConvRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -118,10 +125,13 @@ class MatmulBenchSpec(BenchSpec):
         return self.input
 
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./matmul/matmul.ll"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/matmul/matmul.ll"))
+
+    def get_pgo_llvm_path(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/matmul/matmul-instr.so"))
 
     def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./matmul"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/matmul"))
 
     class MatmulRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -166,10 +176,13 @@ class ConcatBenchSpec(BenchSpec):
         return self.input
 
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./concat/concat.ll"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/concat/concat.ll"))
+    
+    def get_pgo_llvm_path(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/concat/concat-instr.so"))
 
     def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./concat"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/concat"))
 
     class ConcatRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -207,10 +220,13 @@ class GatherBenchSpec(BenchSpec):
         return self.input
 
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./gather/gather.ll"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/gather/gather.ll"))
+    
+    def get_pgo_llvm_path(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/gather/gather-instr.so"))
 
     def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./gather"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/gather"))
 
     class GatherRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -252,10 +268,13 @@ class ReshapeBenchSpec(BenchSpec):
         return self.input
 
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./reshape/reshape.ll"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/reshape/reshape.ll"))
+    
+    def get_pgo_llvm_path(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/reshape/reshape-instr.so"))
 
     def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./reshape"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/reshape"))
 
     class ReshapeRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -294,10 +313,13 @@ class ShapeBenchSpec(BenchSpec):
         return self.input
 
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./shape/shape.ll"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/shape/shape.ll"))
+    
+    def get_pgo_llvm_path(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/shape/shape-instr.so"))
 
     def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./shape"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/shape"))
 
     class ShapeRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -336,10 +358,13 @@ class SqueezeBenchSpec(BenchSpec):
         return self.input
 
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./squeeze/squeeze.ll"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/squeeze/squeeze.ll"))
+    
+    def get_pgo_llvm_path(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/squeeze/squeeze-instr.so"))
 
     def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./squeeze"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/squeeze"))
 
     class SqueezeRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -380,10 +405,13 @@ class UnsqueezeBenchSpec(BenchSpec):
         return self.input  
 
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./unsqueeze/unsqueeze.ll"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/unsqueeze/unsqueeze.ll"))
+    
+    def get_pgo_llvm_path(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/unsqueeze/unsqueeze-instr.so"))
 
     def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./unsqueeze"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/unsqueeze"))
 
     class UnsqueezeRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -426,10 +454,13 @@ class AddBenchSpec(BenchSpec):
         return self.input
 
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./add/add.ll"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/add/add.ll"))
+    
+    def get_pgo_llvm_path(self) -> str:
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/add/add-instr.so"))
 
     def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./add"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/add"))
 
     class AddRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -470,10 +501,13 @@ class CastBenchSpec(BenchSpec):
         return self.input
 
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./cast/cast.ll"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/cast/cast.ll"))
+    
+    def get_pgo_llvm_path(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/cast/cast-instr.so"))
 
     def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./cast"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/cast"))
 
     class CastRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -513,10 +547,13 @@ class MulBenchSpec(BenchSpec):
         return self.input
 
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./mul/mul.ll"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/mul/mul.ll"))
+    
+    def get_pgo_llvm_path(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/mul/mul-instr.so"))
 
     def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./mul"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/mul"))
 
     class MulRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -558,10 +595,13 @@ class ReluBenchSpec(BenchSpec):
         return self.input
 
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./relu/relu.ll"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/relu/relu.ll"))
+    
+    def get_pgo_llvm_path(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/relu/relu-instr.so"))
 
     def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./relu"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/relu"))
 
     class ReluRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -600,10 +640,13 @@ class SubBenchSpec(BenchSpec):
         return self.input
 
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./sub/sub.ll"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/sub/sub.ll"))
+    
+    def get_pgo_llvm_path(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/sub/sub-instr.so"))
 
     def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./sub"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/sub"))
 
     class SubRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -645,10 +688,13 @@ class TransposeBenchSpec(BenchSpec):
         return self.input
 
     def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./transpose/transpose.ll"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/transpose/transpose.ll"))
+    
+    def get_pgo_llvm_path(self):
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/transpose/transpose-instr.so"))
 
     def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./transpose"))
+        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/transpose"))
 
     class TransposeRunner(TVMRunner):
         def run(self, module, input: dict):
@@ -719,9 +765,10 @@ def get_symb_overhead(bench:BenchSpec):
 def get_dynm_overhead(bench:BenchSpec):
     input_data = bench.get_input()
     kernel_path = bench.get_kernel_llvm_path()
+    pgo_path = bench.get_pgo_llvm_path()
 
     runner = bench.get_tvm_runner()
-    module = tvm.runtime.load_module(kernel_path)
+    module = tvm.runtime.load_module(pgo_path)
     exec_ns = runner.run(module, input_data)
 
     temp_file = tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".ll")
@@ -883,5 +930,17 @@ def get_all_results():
     save_results_to_csv("overhead_results.csv", labels, results)
 
 
+def test():
+    sizes = [64, 128, 256, 512, 1024, 2048, 4096, 8192]
+    labels = ["add"]
+
+    results = []
+    for label in labels:
+        result = run_benchmarks(sizes, label)
+        results.append(result)
+    
+    save_results_to_csv("overhead_test_results.csv", labels, results)
+
 if __name__ == "__main__":
-    get_all_results()
+    # get_all_results()
+    test()

@@ -16,28 +16,32 @@ class BenchSpec(ABC):
         """Get the input data for the benchmark."""
     
     @abstractmethod
-    def get_kernel_llvm_path(self) -> str:
-        """Get the path to the LLVM kernel."""
-    
-    @abstractmethod
     def get_tvm_runner(self) -> TVMRunner:
         """Get the TVM runner instance."""
 
     @abstractmethod
     def generate_kernel(self):
         """Generate the LLVM kernel and save it to the specified path."""
-
-    @abstractmethod
-    def get_directory(self) -> str:
-        """Get the current working directory for the benchmark."""
     
     @abstractmethod
     def get_name(self) -> str:
         """Get the name of the benchmark."""
+    
+    def __init__(self):
+        self.symbolic_patches = {}
+        self.base_dir = ""
 
-    @abstractmethod
     def get_symbolic_patches(self) -> dict:
-        """Get the symbolic patches for the benchmark. e.g. {'inst_smax_1': 128}"""
+        return self.symbolic_patches
+
+    def add_symbolic_patch(self, key: str, value: int):
+        self.symbolic_patches[key] = value
+
+    def get_kernel_llvm_path(self) -> str:
+        return os.path.join(self.get_directory(), f"{self.get_name()}.ll")
+
+    def get_directory(self):
+        return os.path.abspath(os.path.join(self.base_dir, f"./{self.get_name()}"))
 
 class TVMOperatorBenchSpec(BenchSpec):
     def __init__(self, base_dir: str, operator_name: str, input_shapes: dict, output_shape: tuple, \

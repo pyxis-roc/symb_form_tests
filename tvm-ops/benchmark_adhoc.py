@@ -4,7 +4,26 @@ import tvm
 import tvm.topi
 import numpy as np
 
-class ConvBenchSpec(BenchSpec):
+class BaseBenchSpec(BenchSpec):
+    def apply_optimizations(self, IRmod):
+        """Apply a common sequence of optimizations to the IRModule."""
+        seq = tvm.transform.Sequential([
+            tvm.tir.transform.Simplify(),
+            tvm.tir.transform.LoopPartition(),
+            tvm.tir.transform.VectorizeLoop(),
+            tvm.tir.transform.UnrollLoop(),
+            tvm.tir.transform.InjectVirtualThread(),
+            tvm.tir.transform.InjectDoubleBuffer(),
+            tvm.tir.transform.ThreadSync("shared"),
+            tvm.tir.transform.ThreadSync("warp"),
+            tvm.tir.transform.RemoveNoOp(),
+            tvm.tir.transform.HoistIfThenElse(),
+            tvm.tir.transform.SplitHostDevice()
+        ])
+        with tvm.transform.PassContext(opt_level=3):
+            return seq(IRmod)
+
+class ConvBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
@@ -24,18 +43,6 @@ class ConvBenchSpec(BenchSpec):
             "KH": 7,   # Kernel height
             "KW": 7,   # Kernel width
         }
-    
-    def get_symbolic_patches(self) -> dict:
-        return self.symbolic_patches
-
-    def add_symbolic_patch(self, key: str, value: int):
-        self.symbolic_patches[key] = value
-    
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.join(self.get_directory(), "conv.ll")
-    
-    def get_directory(self):
-        return os.path.abspath(os.path.join(self.base_dir, "./conv"))
 
     def generate_kernel(self):
         """Generate a conv2d kernel using tvm.topi.nn.conv2d."""
@@ -51,6 +58,7 @@ class ConvBenchSpec(BenchSpec):
         C = tvm.topi.nn.conv2d(A, Wt, strides=1, padding=1, dilation=1, out_dtype="float32")
         te_func = tvm.te.create_prim_func([A, Wt, C]).with_attr({"global_symbol": "conv"})
         IRmod = tvm.IRModule({"conv": te_func})
+        IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
         os.makedirs(self.get_directory(), exist_ok=True)
         with open(self.get_kernel_llvm_path(), 'w') as f:
@@ -86,9 +94,9 @@ class ConvBenchSpec(BenchSpec):
         return self.ConvRunner()
 
     def get_name(self):
-        return "conv2d_benchmark"
+        return "conv"
 
-class MatmulBenchSpec(BenchSpec):
+class MatmulBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
@@ -101,18 +109,6 @@ class MatmulBenchSpec(BenchSpec):
             "K": 128   # Columns of A, Rows of B
         }
 
-    def get_symbolic_patches(self) -> dict:
-        return self.symbolic_patches
-
-    def add_symbolic_patch(self, key: str, value: int):
-        self.symbolic_patches[key] = value
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.join(self.get_directory(), "matmul.ll")
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(self.base_dir, "./matmul"))
-
     def generate_kernel(self):
         """Generate a matmul kernel using tvm.topi.nn.matmul."""
         M = tvm.te.var("M")
@@ -123,6 +119,7 @@ class MatmulBenchSpec(BenchSpec):
         C = tvm.topi.nn.matmul(A, B)
         te_func = tvm.te.create_prim_func([A, B, C]).with_attr({"global_symbol": "matmul"})
         IRmod = tvm.IRModule({"matmul": te_func})
+        IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
         os.makedirs(self.get_directory(), exist_ok=True)
         with open(self.get_kernel_llvm_path(), 'w') as f:
@@ -151,9 +148,9 @@ class MatmulBenchSpec(BenchSpec):
         return self.MatmulRunner()
 
     def get_name(self):
-        return "matmul_benchmark"
+        return "matmul"
 
-class ConcatBenchSpec(BenchSpec):
+class ConcatBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
@@ -167,18 +164,6 @@ class ConcatBenchSpec(BenchSpec):
             "N": 128,  # Number of tensors to concatenate
         }
 
-    def get_symbolic_patches(self) -> dict:
-        return self.symbolic_patches
-
-    def add_symbolic_patch(self, key: str, value: int):
-        self.symbolic_patches[key] = value
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.join(self.get_directory(), "concat.ll")
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(self.base_dir, "./concat"))
-
     def generate_kernel(self):
         """Generate a concat kernel using tvm.topi.concatenate."""
         M = tvm.te.var("M")
@@ -188,6 +173,7 @@ class ConcatBenchSpec(BenchSpec):
         C = tvm.topi.concatenate([A, B], axis=0)
         te_func = tvm.te.create_prim_func([A, B, C]).with_attr({"global_symbol": "concat"})
         IRmod = tvm.IRModule({"concat": te_func})
+        IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
         os.makedirs(self.get_directory(), exist_ok=True)
         with open(self.get_kernel_llvm_path(), 'w') as f:
@@ -211,9 +197,9 @@ class ConcatBenchSpec(BenchSpec):
         return self.ConcatRunner()
 
     def get_name(self):
-        return "concat_benchmark"
+        return "concat"
 
-class GatherBenchSpec(BenchSpec):
+class GatherBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
@@ -226,18 +212,6 @@ class GatherBenchSpec(BenchSpec):
             "K": 64
         }
 
-    def get_symbolic_patches(self) -> dict:
-        return self.symbolic_patches
-
-    def add_symbolic_patch(self, key: str, value: int):
-        self.symbolic_patches[key] = value
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.join(self.get_directory(), "gather.ll")
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(self.base_dir, "./gather"))
-
     def generate_kernel(self):
         """Generate a gather kernel using tvm.topi.take."""
         M = tvm.te.var("M")
@@ -248,6 +222,7 @@ class GatherBenchSpec(BenchSpec):
         C = tvm.topi.take(A, indices, axis=0)
         te_func = tvm.te.create_prim_func([A, indices, C]).with_attr({"global_symbol": "gather"})
         IRmod = tvm.IRModule({"gather": te_func})
+        IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
         os.makedirs(self.get_directory(), exist_ok=True)
         with open(self.get_kernel_llvm_path(), 'w') as f:
@@ -275,9 +250,9 @@ class GatherBenchSpec(BenchSpec):
         return self.GatherRunner()
 
     def get_name(self):
-        return "gather_benchmark"
+        return "gather"
 
-class ReshapeBenchSpec(BenchSpec):
+class ReshapeBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
@@ -289,18 +264,6 @@ class ReshapeBenchSpec(BenchSpec):
             "N": 64,   # New shape
         }
 
-    def get_symbolic_patches(self) -> dict:
-        return self.symbolic_patches
-
-    def add_symbolic_patch(self, key: str, value: int):
-        self.symbolic_patches[key] = value
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.join(self.get_directory(), "reshape.ll")
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(self.base_dir, "./reshape"))
-
     def generate_kernel(self):
         """Generate a reshape kernel using tvm.topi.reshape."""
         M = tvm.te.var("M")
@@ -309,6 +272,7 @@ class ReshapeBenchSpec(BenchSpec):
         C = tvm.topi.reshape(A, (M * N,))
         te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "reshape"})
         IRmod = tvm.IRModule({"reshape": te_func})
+        IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
         os.makedirs(self.get_directory(), exist_ok=True)
         with open(self.get_kernel_llvm_path(), 'w') as f:
@@ -333,9 +297,9 @@ class ReshapeBenchSpec(BenchSpec):
         return self.ReshapeRunner()
 
     def get_name(self):
-        return "reshape_benchmark"
+        return "reshape"
 
-class ShapeBenchSpec(BenchSpec):
+class ShapeBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
@@ -347,18 +311,6 @@ class ShapeBenchSpec(BenchSpec):
             "N": 64,   # Not used in this benchmark
         }
 
-    def get_symbolic_patches(self) -> dict:
-        return self.symbolic_patches
-
-    def add_symbolic_patch(self, key: str, value: int):
-        self.symbolic_patches[key] = value
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.join(self.get_directory(), "shape.ll")
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(self.base_dir, "./shape"))
-
     def generate_kernel(self):
         """Generate a shape kernel using tvm.topi.shape."""
         M = tvm.te.var("M")
@@ -368,6 +320,7 @@ class ShapeBenchSpec(BenchSpec):
         out_shape = tvm.topi.shape(A)
         te_func = tvm.te.create_prim_func([A, out_shape]).with_attr({"global_symbol": "shape"})
         IRmod = tvm.IRModule({"shape": te_func})
+        IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
         os.makedirs(self.get_directory(), exist_ok=True)
         with open(self.get_kernel_llvm_path(), 'w') as f:
@@ -392,9 +345,9 @@ class ShapeBenchSpec(BenchSpec):
         return self.ShapeRunner()
 
     def get_name(self):
-        return "shape_benchmark"
+        return "shape"
 
-class SqueezeBenchSpec(BenchSpec):
+class SqueezeBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
@@ -406,18 +359,6 @@ class SqueezeBenchSpec(BenchSpec):
             "N": 1,    # Squeeze axis size
         }
 
-    def get_symbolic_patches(self) -> dict:
-        return self.symbolic_patches
-
-    def add_symbolic_patch(self, key: str, value: int):
-        self.symbolic_patches[key] = value
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.join(self.get_directory(), "squeeze.ll")
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(self.base_dir, "./squeeze"))
-
     def generate_kernel(self):
         """Generate a squeeze kernel using tvm.topi.squeeze."""
         M = tvm.te.var("M")
@@ -425,6 +366,7 @@ class SqueezeBenchSpec(BenchSpec):
         C = tvm.topi.squeeze(A, axis=[1])
         te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "squeeze"})
         IRmod = tvm.IRModule({"squeeze": te_func})
+        IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
         os.makedirs(self.get_directory(), exist_ok=True)
         with open(self.get_kernel_llvm_path(), 'w') as f:
@@ -450,9 +392,9 @@ class SqueezeBenchSpec(BenchSpec):
         return self.SqueezeRunner()
 
     def get_name(self):
-        return "squeeze_benchmark"
+        return "squeeze"
     
-class UnsqueezeBenchSpec(BenchSpec):
+class UnsqueezeBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
@@ -464,18 +406,6 @@ class UnsqueezeBenchSpec(BenchSpec):
             "N": 1,    # Unsqueeze axis size
         }
 
-    def get_symbolic_patches(self) -> dict:
-        return self.symbolic_patches
-
-    def add_symbolic_patch(self, key: str, value: int):
-        self.symbolic_patches[key] = value
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.join(self.get_directory(), "unsqueeze.ll")
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(self.base_dir, "./unsqueeze"))
-
     def generate_kernel(self):
         """Generate an unsqueeze kernel using tvm.topi.expand_dims."""
         M = tvm.te.var("M")
@@ -484,6 +414,7 @@ class UnsqueezeBenchSpec(BenchSpec):
         C = tvm.topi.expand_dims(A, axis=1, num_newaxis=1)
         te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "unsqueeze"})
         IRmod = tvm.IRModule({"unsqueeze": te_func})
+        IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
         os.makedirs(self.get_directory(), exist_ok=True)
         with open(self.get_kernel_llvm_path(), 'w') as f:
@@ -511,9 +442,9 @@ class UnsqueezeBenchSpec(BenchSpec):
         return self.UnsqueezeRunner()
 
     def get_name(self):
-        return "unsqueeze_benchmark"
+        return "unsqueeze"
 
-class AddBenchSpec(BenchSpec):
+class AddBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
@@ -525,18 +456,6 @@ class AddBenchSpec(BenchSpec):
             "N": 128
         }
 
-    def get_symbolic_patches(self) -> dict:
-        return self.symbolic_patches
-
-    def add_symbolic_patch(self, key: str, value: int):
-        self.symbolic_patches[key] = value
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.join(self.get_directory(), "add.ll")
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(self.base_dir, "./add"))
-
     def generate_kernel(self):
         """Generate an add kernel using tvm.topi.nn.add."""
         M = tvm.te.var("M")
@@ -546,6 +465,7 @@ class AddBenchSpec(BenchSpec):
         C = tvm.topi.nn.add(A, B)
         te_func = tvm.te.create_prim_func([A, B, C]).with_attr({"global_symbol": "add"})
         IRmod = tvm.IRModule({"add": te_func})
+        IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
         os.makedirs(self.get_directory(), exist_ok=True)
         with open(self.get_kernel_llvm_path(), 'w') as f:
@@ -572,9 +492,9 @@ class AddBenchSpec(BenchSpec):
         return self.AddRunner()
 
     def get_name(self):
-        return "add_benchmark"
+        return "add"
 
-class CastBenchSpec(BenchSpec):
+class CastBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
@@ -586,18 +506,6 @@ class CastBenchSpec(BenchSpec):
             "N": 128
         }
 
-    def get_symbolic_patches(self) -> dict:
-        return self.symbolic_patches
-
-    def add_symbolic_patch(self, key: str, value: int):
-        self.symbolic_patches[key] = value
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.join(self.get_directory(), "cast.ll")
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(self.base_dir, "./cast"))
-
     def generate_kernel(self):
         """Generate a cast kernel using tvm.topi.cast."""
         M = tvm.te.var("M")
@@ -606,6 +514,7 @@ class CastBenchSpec(BenchSpec):
         C = tvm.topi.cast(A, "int32")
         te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "cast"})
         IRmod = tvm.IRModule({"cast": te_func})
+        IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
         os.makedirs(self.get_directory(), exist_ok=True)
         with open(self.get_kernel_llvm_path(), 'w') as f:
@@ -630,9 +539,9 @@ class CastBenchSpec(BenchSpec):
         return self.CastRunner()
 
     def get_name(self):
-        return "cast_benchmark"
+        return "cast"
 
-class MulBenchSpec(BenchSpec):
+class MulBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
@@ -645,18 +554,6 @@ class MulBenchSpec(BenchSpec):
             "N": 128
         }
 
-    def get_symbolic_patches(self) -> dict:
-        return self.symbolic_patches
-
-    def add_symbolic_patch(self, key: str, value: int):
-        self.symbolic_patches[key] = value
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.join(self.get_directory(), "mul.ll")
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(self.base_dir, "./mul"))
-
     def generate_kernel(self):
         """Generate a multiplication kernel using tvm.topi.multiply."""
         M = tvm.te.var("M")
@@ -666,6 +563,7 @@ class MulBenchSpec(BenchSpec):
         C = tvm.topi.multiply(A, B)
         te_func = tvm.te.create_prim_func([A, B, C]).with_attr({"global_symbol": "mul"})
         IRmod = tvm.IRModule({"mul": te_func})
+        IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
         os.makedirs(self.get_directory(), exist_ok=True)
         with open(self.get_kernel_llvm_path(), 'w') as f:
@@ -693,9 +591,9 @@ class MulBenchSpec(BenchSpec):
         return self.MulRunner()
 
     def get_name(self):
-        return "mul_benchmark"
+        return "mul"
 
-class ReluBenchSpec(BenchSpec):
+class ReluBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
@@ -707,18 +605,6 @@ class ReluBenchSpec(BenchSpec):
             "N": 128
         }
 
-    def get_symbolic_patches(self) -> dict:
-        return self.symbolic_patches
-
-    def add_symbolic_patch(self, key: str, value: int):
-        self.symbolic_patches[key] = value
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.join(self.get_directory(), "relu.ll")
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(self.base_dir, "./relu"))
-
     def generate_kernel(self):
         """Generate a relu kernel using tvm.topi.nn.relu."""
         M = tvm.te.var("M")
@@ -727,6 +613,7 @@ class ReluBenchSpec(BenchSpec):
         C = tvm.topi.nn.relu(A)
         te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "relu"})
         IRmod = tvm.IRModule({"relu": te_func})
+        IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
         os.makedirs(self.get_directory(), exist_ok=True)
         with open(self.get_kernel_llvm_path(), 'w') as f:
@@ -751,9 +638,9 @@ class ReluBenchSpec(BenchSpec):
         return self.ReluRunner()
 
     def get_name(self):
-        return "relu_benchmark"
+        return "relu"
     
-class SubBenchSpec(BenchSpec):
+class SubBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
@@ -765,18 +652,6 @@ class SubBenchSpec(BenchSpec):
             "N": 128
         }
 
-    def get_symbolic_patches(self) -> dict:
-        return self.symbolic_patches
-
-    def add_symbolic_patch(self, key: str, value: int):
-        self.symbolic_patches[key] = value
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.join(self.get_directory(), "sub.ll")
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(self.base_dir, "./sub"))
-
     def generate_kernel(self):
         """Generate a subtraction kernel using tvm.topi.subtract."""
         M = tvm.te.var("M")
@@ -786,6 +661,7 @@ class SubBenchSpec(BenchSpec):
         C = tvm.topi.subtract(A, B)
         te_func = tvm.te.create_prim_func([A, B, C]).with_attr({"global_symbol": "sub"})
         IRmod = tvm.IRModule({"sub": te_func})
+        IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
         os.makedirs(self.get_directory(), exist_ok=True)
         with open(self.get_kernel_llvm_path(), 'w') as f:
@@ -812,9 +688,9 @@ class SubBenchSpec(BenchSpec):
         return self.SubRunner()
 
     def get_name(self):
-        return "sub_benchmark"
+        return "sub"
 
-class TransposeBenchSpec(BenchSpec):
+class TransposeBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
@@ -826,18 +702,6 @@ class TransposeBenchSpec(BenchSpec):
             "N": 128
         }
 
-    def get_symbolic_patches(self) -> dict:
-        return self.symbolic_patches
-
-    def add_symbolic_patch(self, key: str, value: int):
-        self.symbolic_patches[key] = value
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.join(self.get_directory(), "transpose.ll")
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(self.base_dir, "./transpose"))
-
     def generate_kernel(self):
         """Generate a transpose kernel using tvm.topi.transpose."""
         M = tvm.te.var("M")
@@ -846,6 +710,7 @@ class TransposeBenchSpec(BenchSpec):
         C = tvm.topi.transpose(A)
         te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "transpose"})
         IRmod = tvm.IRModule({"transpose": te_func})
+        IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
         os.makedirs(self.get_directory(), exist_ok=True)
         with open(self.get_kernel_llvm_path(), 'w') as f:
@@ -870,4 +735,914 @@ class TransposeBenchSpec(BenchSpec):
         return self.TransposeRunner()
 
     def get_name(self):
-        return "transpose_benchmark"
+        return "transpose"
+
+class SliceBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+
+    def get_input_shape(self) -> dict:
+        return {
+            "M": 128,
+            "N": 128,
+            "start": 32,
+            "end": 96
+        }
+
+    def generate_kernel(self):
+        """Generate a slice kernel using tvm.topi.strided_slice."""
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.strided_slice(A, begin=[32, 0], end=[96, N])
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "slice"})
+        IRmod = tvm.IRModule({"slice": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class SliceRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((64, N), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["slice"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.SliceRunner()
+
+    def get_name(self):
+        return "slice"
+
+class BatchNormalizationBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {
+            'inst_T_subtract5_1': 1,
+            'inst_T_subtract5_2': 1,
+            'inst_T_subtract5_3': 1,
+            'inst_T_subtract5_4': 1,
+            'inst_T_subtract5_5': 1,
+            'inst_T_subtract_1':1,
+            'inst_T_subtract_2':1,
+            'inst_T_subtract_3':1,
+            'inst_T_subtract_4':1,
+            'inst_T_subtract_5':1,
+            'inst_T_subtract_6':1,
+            'inst_T_subtract10_1':1,
+            'inst_T_subtract10_2':1,
+            'inst_T_subtract10_3':1,
+            'inst_T_subtract10_4':1,
+            'inst_T_subtract10_5':1,
+            'inst_T_subtract10_6':1,
+            'inst_A_red_1': 1,
+            'inst_A_red_2': 1,
+            'inst_A_red_3': 1,
+            'inst_A_red_4': 1,
+            'inst_A_red_5': 1,
+            'inst_A_red_6': 1,
+            'inst_A_red_7': 1,
+            'inst__1': 0,
+            'inst__2': 0,
+            'inst__3': 0,
+            'inst__4': 0,
+            'null':0
+        }
+
+    def get_input_shape(self) -> dict:
+        return {
+            "N": 128,  # Batch size
+            "C": 64,   # Channels
+            "H": 32,   # Height
+            "W": 32    # Width
+        }
+
+    def generate_kernel(self):
+        """Generate a batch normalization kernel using tvm.topi.nn.batch_norm."""
+        N = tvm.te.var("N")
+        C = tvm.te.var("C")
+        H = tvm.te.var("H")
+        W = tvm.te.var("W")
+        A = tvm.te.placeholder((N, C, H, W), "float32", name="A")
+        gamma = tvm.te.placeholder((C,), "float32", name="gamma")
+        beta = tvm.te.placeholder((C,), "float32", name="beta")
+        moving_mean = tvm.te.placeholder((C,), "float32", name="moving_mean")
+        moving_var = tvm.te.placeholder((C,), "float32", name="moving_var")
+        C, _, _ = tvm.topi.nn.batch_norm(A, gamma, beta, moving_mean, moving_var)
+        te_func = tvm.te.create_prim_func([A, gamma, beta, moving_mean, moving_var, C]).with_attr({"global_symbol": "batch_norm"})
+        IRmod = tvm.IRModule({"batch_norm": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class BatchNormalizationRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            N = input.get("N", 128)
+            C = input.get("C", 64)
+            H = input.get("H", 32)
+            W = input.get("W", 32)
+
+            A_np = np.random.randn(N, C, H, W).astype("float32")
+            gamma_np = np.random.randn(C).astype("float32")
+            beta_np = np.random.randn(C).astype("float32")
+            moving_mean_np = np.random.randn(C).astype("float32")
+            moving_var_np = np.random.randn(C).astype("float32")
+            C_np = np.zeros((N, C, H, W), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            gamma = tvm.nd.array(gamma_np, ctx)
+            beta = tvm.nd.array(beta_np, ctx)
+            moving_mean = tvm.nd.array(moving_mean_np, ctx)
+            moving_var = tvm.nd.array(moving_var_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["batch_norm"]
+            func(A, gamma, beta, moving_mean, moving_var, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.BatchNormalizationRunner()
+
+    def get_name(self):
+        return "batch_norm"
+
+class DivBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+
+    def get_input_shape(self) -> dict:
+        return {
+            "M": 128,
+            "N": 128
+        }
+
+    def generate_kernel(self):
+        """Generate a division kernel using tvm.topi.divide."""
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        B = tvm.te.placeholder((M, N), "float32", name="B")
+        C = tvm.topi.divide(A, B)
+        te_func = tvm.te.create_prim_func([A, B, C]).with_attr({"global_symbol": "div"})
+        IRmod = tvm.IRModule({"div": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class DivRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            B_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, N), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            B = tvm.nd.array(B_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["div"]
+            func(A, B, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.DivRunner()
+
+    def get_name(self):
+        return "div"
+
+class SumBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+
+    def get_input_shape(self) -> dict:
+        return {
+            "M": 128,
+            "N": 128
+        }
+
+    def generate_kernel(self):
+        """Generate a sum kernel using tvm.topi.sum."""
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.sum(A, axis=1)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "sum"})
+        IRmod = tvm.IRModule({"sum": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class SumRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M,), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["sum"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.SumRunner()
+
+    def get_name(self):
+        return "sum"
+
+class NonZeroBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {
+            'inst_Z_1': 1,
+            'null': 0
+        }
+
+    def get_input_shape(self) -> dict:
+        return {
+            "M": 128,
+            "N": 128
+        }
+
+    def generate_kernel(self):
+        """Generate a nonzero kernel using tvm.topi.nonzero."""
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        Z = tvm.te.compute((M, N), lambda i, j: 0, name="Z")
+        C = tvm.topi.not_equal(A, Z)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "nonzero"})
+        IRmod = tvm.IRModule({"nonzero": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class NonZeroRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, N), dtype="bool")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["nonzero"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.NonZeroRunner()
+
+    def get_name(self):
+        return "nonzero"
+
+class PowBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+
+    def get_input_shape(self) -> dict:
+        return {
+            "M": 128,
+            "N": 128
+        }
+
+    def generate_kernel(self):
+        """Generate a power kernel using tvm.topi.power."""
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.power(A, 2.0)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "pow"})
+        IRmod = tvm.IRModule({"pow": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class PowRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, N), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["pow"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.PowRunner()
+
+    def get_name(self):
+        return "pow"
+
+class SqrtBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+
+    def get_input_shape(self) -> dict:
+        return {
+            "M": 128,
+            "N": 128
+        }
+
+    def generate_kernel(self):
+        """Generate a square root kernel using tvm.topi.sqrt."""
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.sqrt(A)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "sqrt"})
+        IRmod = tvm.IRModule({"sqrt": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class SqrtRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, N), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["sqrt"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.SqrtRunner()
+
+    def get_name(self):
+        return "sqrt"
+
+class ClipBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+
+    def get_input_shape(self) -> dict:
+        return {
+            "M": 128,
+            "N": 128,
+            "min_val": -1.0,
+            "max_val": 1.0
+        }
+
+    def generate_kernel(self):
+        """Generate a clip kernel using tvm.topi.clip."""
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.clip(A, a_min=-1.0, a_max=1.0)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "clip"})
+        IRmod = tvm.IRModule({"clip": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class ClipRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, N), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["clip"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.ClipRunner()
+
+    def get_name(self):
+        return "clip"
+    
+
+class LeakyReluBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+
+    def get_input_shape(self) -> dict:
+        return {
+            "M": 128,
+            "N": 128,
+            "alpha": 0.1
+        }
+
+    def generate_kernel(self):
+        """Generate a LeakyReLU kernel using tvm.topi.nn.leaky_relu."""
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.nn.leaky_relu(A, alpha=0.1)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "leaky_relu"})
+        IRmod = tvm.IRModule({"leaky_relu": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class LeakyReluRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, N), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["leaky_relu"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.LeakyReluRunner()
+
+    def get_name(self):
+        return "leaky_relu"
+
+class GemmBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+
+    def get_input_shape(self) -> dict:
+        return {
+            "M": 128,
+            "N": 128,
+            "K": 128
+        }
+
+    def generate_kernel(self):
+        """Generate a GEMM kernel using tvm.topi.nn.dense."""
+        M = tvm.te.var("M")
+        K = tvm.te.var("K")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, K), "float32", name="A")
+        B = tvm.te.placeholder((K, N), "float32", name="B")
+        C = tvm.topi.nn.dense(A, B)
+        te_func = tvm.te.create_prim_func([A, B, C]).with_attr({"global_symbol": "gemm"})
+        IRmod = tvm.IRModule({"gemm": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class GemmRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            K = input.get("K", 128)
+            N = input.get("N", 128)
+
+            A_np = np.random.randn(M, K).astype("float32")
+            B_np = np.random.randn(K, N).astype("float32")
+            C_np = np.zeros((M, N), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            B = tvm.nd.array(B_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["gemm"]
+            func(A, B, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.GemmRunner()
+
+    def get_name(self):
+        return "gemm"
+
+class SoftmaxBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {
+            'inst_T_softmax_exp_1': 1,
+            'inst_T_softmax_exp_2': 1,
+            'inst_T_softmax_maxelem_1': 1,
+            'inst_T_softmax_maxelem_2': 1,
+            'inst_T_softmax_maxelem_3': 1,
+            'inst__1': 0,
+            'null': 0
+        }
+
+    def get_input_shape(self) -> dict:
+        return {
+            "M": 128,
+            "N": 128
+        }
+
+    def generate_kernel(self):
+        """Generate a softmax kernel using tvm.topi.nn.softmax."""
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.nn.softmax(A)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "softmax"})
+        IRmod = tvm.IRModule({"softmax": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class SoftmaxRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, N), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["softmax"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.SoftmaxRunner()
+
+    def get_name(self):
+        return "softmax"
+
+class TanhBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+
+    def get_input_shape(self) -> dict:
+        return {
+            "M": 128,
+            "N": 128
+        }
+
+    def generate_kernel(self):
+        """Generate a tanh kernel using tvm.topi.tanh."""
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.tanh(A)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "tanh"})
+        IRmod = tvm.IRModule({"tanh": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class TanhRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, N), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["tanh"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.TanhRunner()
+
+    def get_name(self):
+        return "tanh"
+
+class MaxPoolBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+
+    def get_input_shape(self) -> dict:
+        return {
+            "N": 1,
+            "C": 3,
+            "H": 224,
+            "W": 224,
+            "pool_size": 2,
+            "strides": 2
+        }
+
+    def generate_kernel(self):
+        """Generate a maxpool kernel using tvm.topi.nn.pool2d."""
+        N = tvm.te.var("N")
+        C = tvm.te.var("C")
+        H = tvm.te.var("H")
+        W = tvm.te.var("W")
+        pool_size = (2, 2)
+        strides = (2, 2)
+        padding = (0, 0, 0, 0)  # Top, left, bottom, right padding
+        A = tvm.te.placeholder((N, C, H, W), "float32", name="A")
+        C = tvm.topi.nn.pool2d(A, pool_size, strides, (1, 1), padding, pool_type="max", layout="NCHW")
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "maxpool"})
+        IRmod = tvm.IRModule({"maxpool": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class MaxPoolRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            N = input.get("N", 1)
+            C = input.get("C", 3)
+            H = input.get("H", 224)
+            W = input.get("W", 224)
+
+            A_np = np.random.randn(N, C, H, W).astype("float32")
+            C_np = np.zeros((N, C, H // 2, W // 2), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["maxpool"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.MaxPoolRunner()
+
+    def get_name(self):
+        return "maxpool"
+
+class ExpBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+
+    def get_input_shape(self) -> dict:
+        return {
+            "M": 128,
+            "N": 128
+        }
+
+    def generate_kernel(self):
+        """Generate an exponential kernel using tvm.topi.exp."""
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.exp(A)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "exp"})
+        IRmod = tvm.IRModule({"exp": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class ExpRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, N), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["exp"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.ExpRunner()
+
+    def get_name(self):
+        return "exp"
+
+class LogBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+
+    def get_input_shape(self) -> dict:
+        return {
+            "M": 128,
+            "N": 128
+        }
+
+    def generate_kernel(self):
+        """Generate a logarithm kernel using tvm.topi.log."""
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.log(A)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "log"})
+        IRmod = tvm.IRModule({"log": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class LogRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, N), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["log"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.LogRunner()
+
+    def get_name(self):
+        return "log"
+
+class PadBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {
+            'inst_smax_1': 132,
+        }
+
+    def get_input_shape(self) -> dict:
+        return {
+            "M": 128,
+            "N": 128,
+            "pad_width": 2
+        }
+
+    def generate_kernel(self):
+        """Generate a padding kernel using tvm.topi.nn.pad."""
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        pad_width = 2
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.nn.pad(A, pad_before=(pad_width, pad_width), pad_after=(pad_width, pad_width))
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "pad"})
+        IRmod = tvm.IRModule({"pad": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class PadRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M + 4, N + 4), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["pad"]
+            func(A, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.PadRunner()
+
+    def get_name(self):
+        return "pad"
+
+class InstanceNormalizationBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {
+            'inst_A_red_temp.v0_1': 1,
+            'inst_A_red_temp.v0_2': 1,
+            'inst_A_red_temp.v0_3': 1,
+            'inst_A_red_temp.v1_1': 1,
+            'inst_A_red_temp.v1_2': 1,
+            'inst_A_red_temp.v1_3': 1,
+            'inst__1': 0,
+            'null': 0
+        }
+
+    def get_input_shape(self) -> dict:
+        return {
+            "N": 1,
+            "C": 3,
+            "H": 224,
+            "W": 224
+        }
+
+    def generate_kernel(self):
+        """Generate an instance normalization kernel using tvm.topi.nn.instance_norm."""
+        N = tvm.te.var("N")
+        C = tvm.te.var("C")
+        H = tvm.te.var("H")
+        W = tvm.te.var("W")
+        A = tvm.te.placeholder((N, C, H, W), "float32", name="A")
+        gamma = tvm.te.placeholder((C,), "float32", name="gamma")
+        beta = tvm.te.placeholder((C,), "float32", name="beta")
+        C = tvm.topi.nn.instance_norm(A, gamma, beta, channel_axis=1, axis=[2, 3])
+        te_func = tvm.te.create_prim_func([A, gamma, beta, C]).with_attr({"global_symbol": "instance_norm"})
+        IRmod = tvm.IRModule({"instance_norm": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class InstanceNormalizationRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            N = input.get("N", 1)
+            C = input.get("C", 3)
+            H = input.get("H", 224)
+            W = input.get("W", 224)
+
+            A_np = np.random.randn(N, C, H, W).astype("float32")
+            gamma_np = np.random.randn(C).astype("float32")
+            beta_np = np.random.randn(C).astype("float32")
+            C_np = np.zeros((N, C, H, W), dtype="float32")
+
+            A = tvm.nd.array(A_np, ctx)
+            gamma = tvm.nd.array(gamma_np, ctx)
+            beta = tvm.nd.array(beta_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+
+            func = module["instance_norm"]
+            func(A, gamma, beta, C)
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.InstanceNormalizationRunner()
+
+    def get_name(self):
+        return "instance_norm"
