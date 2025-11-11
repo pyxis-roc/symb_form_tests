@@ -3,17 +3,14 @@ import tvm
 import tvm.topi
 import numpy as np
 import os
+from time import perf_counter_ns
 
 class TVMRunner(ABC):
     @abstractmethod
-    def run(self, module, input:dict):
-        """Run the TVM module with the given arguments."""
+    def run(self, module, input:dict) -> int:
+        """Run the TVM module with the given arguments. return the execution time in nanoseconds."""
         
 class BenchSpec(ABC):
-
-    @abstractmethod
-    def get_input_shape(self) -> dict:
-        """Get the input data for the benchmark."""
     
     @abstractmethod
     def get_tvm_runner(self) -> TVMRunner:
@@ -28,8 +25,12 @@ class BenchSpec(ABC):
         """Get the name of the benchmark."""
     
     def __init__(self):
+        self.input_shape = {}
         self.symbolic_patches = {}
         self.base_dir = ""
+    
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def get_symbolic_patches(self) -> dict:
         return self.symbolic_patches
@@ -135,7 +136,12 @@ class TVMOperatorBenchSpec(BenchSpec):
             
             output = tvm.nd.array(np.zeros(self.output_shape, dtype=self.output_type), ctx)
             func = module[self.operator_name]
+
+            start = perf_counter_ns()
             func(*inputs, output)
+            end = perf_counter_ns()
+
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.GenericRunner(self.operator_name, self.input_shapes, self.output_shape, \

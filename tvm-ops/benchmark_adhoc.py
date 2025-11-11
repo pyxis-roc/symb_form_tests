@@ -3,6 +3,7 @@ import os
 import tvm
 import tvm.topi
 import numpy as np
+from time import perf_counter_ns
 
 class BaseBenchSpec(BenchSpec):
     def apply_optimizations(self, IRmod):
@@ -32,9 +33,7 @@ class ConvBenchSpec(BaseBenchSpec):
             "null": 0,
             'inst_smax_1': 226
         }
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "N": 1,  # Batch size
             "CI": 3,  # Input channels
             "H": 224,  # Input height
@@ -43,6 +42,9 @@ class ConvBenchSpec(BaseBenchSpec):
             "KH": 7,   # Kernel height
             "KW": 7,   # Kernel width
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a conv2d kernel using tvm.topi.nn.conv2d."""
@@ -65,7 +67,7 @@ class ConvBenchSpec(BaseBenchSpec):
             f.write(runtime_mod.get_source())
 
     class ConvRunner(TVMRunner):
-        def run(self, module, input: dict):
+        def run(self, module, input: dict) -> int:
             ctx = tvm.cpu(0)
             N = input.get("N", 1)
             CI = input.get("CI", 3)
@@ -87,7 +89,12 @@ class ConvBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["conv"]
+
+            start = perf_counter_ns()
             func(A, Wt, C)
+            end = perf_counter_ns()
+
+            return end - start
 
 
     def get_tvm_runner(self) -> TVMRunner:
@@ -101,13 +108,14 @@ class MatmulBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,  # Rows of A and C
             "N": 128,  # Columns of B and C
             "K": 128   # Columns of A, Rows of B
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a matmul kernel using tvm.topi.nn.matmul."""
@@ -141,7 +149,10 @@ class MatmulBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["matmul"]
+            start = perf_counter_ns()
             func(A, B, C)
+            end = perf_counter_ns()
+            return end - start
 
 
     def get_tvm_runner(self) -> TVMRunner:
@@ -157,12 +168,13 @@ class ConcatBenchSpec(BaseBenchSpec):
         self.symbolic_patches = {
             "inst_smax_1": 128 * 2
         }
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128,  # Number of tensors to concatenate
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a concat kernel using tvm.topi.concatenate."""
@@ -191,7 +203,10 @@ class ConcatBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(np.zeros((M*2, N), dtype="float32"), ctx)
 
             func = module["concat"]
+            start = perf_counter_ns()
             func(A, B, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.ConcatRunner()
@@ -204,13 +219,14 @@ class GatherBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,  # Number of elements in the input tensor
             "N": 64,   # Number of indices to gather
             "K": 64
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a gather kernel using tvm.topi.take."""
@@ -244,7 +260,10 @@ class GatherBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["gather"]
+            start = perf_counter_ns()
             func(A, indices, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.GatherRunner()
@@ -257,12 +276,13 @@ class ReshapeBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-    
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,  # Original shape
             "N": 64,   # New shape
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a reshape kernel using tvm.topi.reshape."""
@@ -291,7 +311,10 @@ class ReshapeBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["reshape"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.ReshapeRunner()
@@ -304,12 +327,13 @@ class ShapeBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-    
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,  # Shape dimension
             "N": 64,   # Not used in this benchmark
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a shape kernel using tvm.topi.shape."""
@@ -339,7 +363,10 @@ class ShapeBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["shape"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.ShapeRunner()
@@ -352,12 +379,13 @@ class SqueezeBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-    
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,  # Original shape
             "N": 1,    # Squeeze axis size
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a squeeze kernel using tvm.topi.squeeze."""
@@ -386,7 +414,10 @@ class SqueezeBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["squeeze"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.SqueezeRunner()
@@ -399,12 +430,13 @@ class UnsqueezeBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-    
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,  # Original shape
             "N": 1,    # Unsqueeze axis size
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate an unsqueeze kernel using tvm.topi.expand_dims."""
@@ -436,7 +468,10 @@ class UnsqueezeBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["unsqueeze"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.UnsqueezeRunner()
@@ -449,12 +484,13 @@ class AddBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate an add kernel using tvm.topi.nn.add."""
@@ -486,7 +522,10 @@ class AddBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["add"]
+            start = perf_counter_ns()
             func(A, B, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.AddRunner()
@@ -499,12 +538,13 @@ class CastBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a cast kernel using tvm.topi.cast."""
@@ -533,7 +573,10 @@ class CastBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["cast"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.CastRunner()
@@ -546,13 +589,14 @@ class MulBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "K": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a multiplication kernel using tvm.topi.multiply."""
@@ -585,7 +629,10 @@ class MulBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["mul"]
+            start = perf_counter_ns()
             func(A, B, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.MulRunner()
@@ -598,12 +645,13 @@ class ReluBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a relu kernel using tvm.topi.nn.relu."""
@@ -632,7 +680,10 @@ class ReluBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["relu"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.ReluRunner()
@@ -645,12 +696,13 @@ class SubBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a subtraction kernel using tvm.topi.subtract."""
@@ -682,7 +734,10 @@ class SubBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["sub"]
+            start = perf_counter_ns()
             func(A, B, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.SubRunner()
@@ -695,12 +750,13 @@ class TransposeBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a transpose kernel using tvm.topi.transpose."""
@@ -729,7 +785,10 @@ class TransposeBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["transpose"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.TransposeRunner()
@@ -742,21 +801,20 @@ class SliceBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128,
-            "start": 32,
-            "end": 96
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a slice kernel using tvm.topi.strided_slice."""
         M = tvm.te.var("M")
         N = tvm.te.var("N")
         A = tvm.te.placeholder((M, N), "float32", name="A")
-        C = tvm.topi.strided_slice(A, begin=[32, 0], end=[96, N])
+        C = tvm.topi.strided_slice(A, begin=[0, 0], end = [64, 64], strides=[1, 1])  # Use constant values
         te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "slice"})
         IRmod = tvm.IRModule({"slice": te_func})
         IRmod = self.apply_optimizations(IRmod)
@@ -772,13 +830,16 @@ class SliceBenchSpec(BaseBenchSpec):
             N = input.get("N", 128)
 
             A_np = np.random.randn(M, N).astype("float32")
-            C_np = np.zeros((64, N), dtype="float32")
+            C_np = np.zeros((64, 64), dtype="float32")
 
             A = tvm.nd.array(A_np, ctx)
             C = tvm.nd.array(C_np, ctx)
 
             func = module["slice"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.SliceRunner()
@@ -821,14 +882,15 @@ class BatchNormalizationBenchSpec(BaseBenchSpec):
             'inst__4': 0,
             'null':0
         }
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "N": 128,  # Batch size
             "C": 64,   # Channels
             "H": 32,   # Height
             "W": 32    # Width
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a batch normalization kernel using tvm.topi.nn.batch_norm."""
@@ -873,7 +935,10 @@ class BatchNormalizationBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["batch_norm"]
+            start = perf_counter_ns()
             func(A, gamma, beta, moving_mean, moving_var, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.BatchNormalizationRunner()
@@ -886,12 +951,13 @@ class DivBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a division kernel using tvm.topi.divide."""
@@ -923,7 +989,10 @@ class DivBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["div"]
+            start = perf_counter_ns()
             func(A, B, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.DivRunner()
@@ -936,12 +1005,13 @@ class SumBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a sum kernel using tvm.topi.sum."""
@@ -970,7 +1040,10 @@ class SumBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["sum"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.SumRunner()
@@ -986,12 +1059,13 @@ class NonZeroBenchSpec(BaseBenchSpec):
             'inst_Z_1': 1,
             'null': 0
         }
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a nonzero kernel using tvm.topi.nonzero."""
@@ -1021,7 +1095,10 @@ class NonZeroBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["nonzero"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.NonZeroRunner()
@@ -1034,12 +1111,13 @@ class PowBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a power kernel using tvm.topi.power."""
@@ -1068,7 +1146,10 @@ class PowBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["pow"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.PowRunner()
@@ -1081,12 +1162,13 @@ class SqrtBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a square root kernel using tvm.topi.sqrt."""
@@ -1115,7 +1197,10 @@ class SqrtBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["sqrt"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.SqrtRunner()
@@ -1128,14 +1213,15 @@ class ClipBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128,
             "min_val": -1.0,
             "max_val": 1.0
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a clip kernel using tvm.topi.clip."""
@@ -1164,7 +1250,10 @@ class ClipBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["clip"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.ClipRunner()
@@ -1178,13 +1267,14 @@ class LeakyReluBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128,
             "alpha": 0.1
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a LeakyReLU kernel using tvm.topi.nn.leaky_relu."""
@@ -1213,7 +1303,10 @@ class LeakyReluBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["leaky_relu"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.LeakyReluRunner()
@@ -1226,13 +1319,14 @@ class GemmBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128,
             "K": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a GEMM kernel using tvm.topi.nn.dense."""
@@ -1266,7 +1360,10 @@ class GemmBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["gemm"]
+            start = perf_counter_ns()
             func(A, B, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.GemmRunner()
@@ -1287,12 +1384,13 @@ class SoftmaxBenchSpec(BaseBenchSpec):
             'inst__1': 0,
             'null': 0
         }
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a softmax kernel using tvm.topi.nn.softmax."""
@@ -1321,7 +1419,10 @@ class SoftmaxBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["softmax"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.SoftmaxRunner()
@@ -1334,12 +1435,13 @@ class TanhBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a tanh kernel using tvm.topi.tanh."""
@@ -1368,7 +1470,10 @@ class TanhBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["tanh"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.TanhRunner()
@@ -1381,9 +1486,7 @@ class MaxPoolBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "N": 1,
             "C": 3,
             "H": 224,
@@ -1391,6 +1494,9 @@ class MaxPoolBenchSpec(BaseBenchSpec):
             "pool_size": 2,
             "strides": 2
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a maxpool kernel using tvm.topi.nn.pool2d."""
@@ -1426,7 +1532,10 @@ class MaxPoolBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["maxpool"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.MaxPoolRunner()
@@ -1439,12 +1548,13 @@ class ExpBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate an exponential kernel using tvm.topi.exp."""
@@ -1473,7 +1583,10 @@ class ExpBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["exp"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.ExpRunner()
@@ -1486,12 +1599,13 @@ class LogBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a logarithm kernel using tvm.topi.log."""
@@ -1520,7 +1634,10 @@ class LogBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["log"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.LogRunner()
@@ -1535,13 +1652,14 @@ class PadBenchSpec(BaseBenchSpec):
         self.symbolic_patches = {
             'inst_smax_1': 132,
         }
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "M": 128,
             "N": 128,
             "pad_width": 2
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate a padding kernel using tvm.topi.nn.pad."""
@@ -1571,7 +1689,10 @@ class PadBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["pad"]
+            start = perf_counter_ns()
             func(A, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.PadRunner()
@@ -1593,14 +1714,15 @@ class InstanceNormalizationBenchSpec(BaseBenchSpec):
             'inst__1': 0,
             'null': 0
         }
-
-    def get_input_shape(self) -> dict:
-        return {
+        self.input_shape = {
             "N": 1,
             "C": 3,
             "H": 224,
             "W": 224
         }
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
 
     def generate_kernel(self):
         """Generate an instance normalization kernel using tvm.topi.nn.instance_norm."""
@@ -1639,7 +1761,10 @@ class InstanceNormalizationBenchSpec(BaseBenchSpec):
             C = tvm.nd.array(C_np, ctx)
 
             func = module["instance_norm"]
+            start = perf_counter_ns()
             func(A, gamma, beta, C)
+            end = perf_counter_ns()
+            return end - start
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.InstanceNormalizationRunner()

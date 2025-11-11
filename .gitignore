@@ -4,3 +4,4 @@ __pycache__
 .__*.pdf
 pyrightconfig.json
 all_ops/
+*.pdf

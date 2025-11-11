@@ -118,7 +118,6 @@ if __name__ == '__main__':
     from benchmark_adhoc import *
 
     for bench_cls in [
-        # TransposeBenchSpec,
         # ConvBenchSpec,
         # MatmulBenchSpec,
         # ConcatBenchSpec,
@@ -132,22 +131,24 @@ if __name__ == '__main__':
         # MulBenchSpec,
         # ReluBenchSpec,
         # SubBenchSpec,
+        # TransposeBenchSpec,
+        # SliceBenchSpec,
+        # BatchNormalizationBenchSpec,
         # DivBenchSpec,
         # SumBenchSpec,
+        # NonZeroBenchSpec,
         # PowBenchSpec,
         # SqrtBenchSpec,
         # ClipBenchSpec,
         # LeakyReluBenchSpec,
         # GemmBenchSpec,
+        SoftmaxBenchSpec,
         # TanhBenchSpec,
+        # MaxPoolBenchSpec,
         # ExpBenchSpec,
         # LogBenchSpec,
-        # MaxPoolBenchSpec,
-        # NonZeroBenchSpec,
-        # SoftmaxBenchSpec,
-        # BatchNormalizationBenchSpec,
-        # InstanceNormalizationBenchSpec,
-        PadBenchSpec,
+        # PadBenchSpec,
+        # InstanceNormalizationBenchSpec
     ]:
         benchmark(bench_cls(base_dir=BASE_DIR), debug=True)
     

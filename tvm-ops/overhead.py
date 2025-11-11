@@ -16,715 +16,19 @@ from time import sleep, perf_counter_ns
 import csv
 import numpy as np
 import re
+from statistics import stdev, mean
 
-class TVMRunner(ABC):
-    @abstractmethod
-    def run(self, module, input:dict)->int:
-        """Run the TVM module with the given arguments."""
-        
-class BenchSpec(ABC):
-    @abstractmethod
-    def get_input(self) -> dict:
-        """Get the input data for the benchmark."""
-    
-    @abstractmethod
-    def get_kernel_llvm_path(self) -> str:
-        """Get the path to the LLVM kernel."""
-
-    @abstractmethod
-    def get_pgo_llvm_path(self) -> str:
-        """Get the path to the PGO LLVM kernel."""
-    
-    @abstractmethod
-    def get_tvm_runner(self) -> TVMRunner:
-        """Get the TVM runner instance."""
-
-    @abstractmethod
-    def get_directory(self) -> str:
-        """Get the current working directory for the benchmark."""
-    
-    @abstractmethod
-    def get_name(self) -> str:
-        """Get the name of the benchmark."""
-
-class ConvBenchSpec(BenchSpec):
-    def __init__(self):
-        # Default input values for the convolution benchmark
-        self.input = {
-            "N": 1,  # Batch size
-            "CI": 3,  # Input channels
-            "H": 224,  # Input height
-            "W": 224,  # Input width
-            "CO": 64,  # Output channels
-            "KH": 7,   # Kernel height
-            "KW": 7,   # Kernel width
-            "inst_pad_temp_2": 1,
-            "null": 0
-        }
-
-    def get_input(self) -> dict:
-        return self.input
-    
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/conv/conv.ll"))
-    
-    def get_pgo_llvm_path(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/conv/conv-instr.so"))
-    
-    def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/conv"))
-
-    class ConvRunner(TVMRunner):
-        def run(self, module, input: dict):
-            ctx = tvm.cpu(0)
-            N = input.get("N", 1)
-            CI = input.get("CI", 3)
-            H = input.get("H", 224)
-            W = input.get("W", 224)
-            CO = input.get("CO", 64)
-            KH = input.get("KH", 7)
-            KW = input.get("KW", 7)
-
-            A_np = np.random.randn(N, CI, H, W).astype("float32")
-            Wt_np = np.random.randn(CO, CI, KH, KW).astype("float32")
-            # Output shape for conv2d with stride=1, padding=1
-            OH = H - KH + 3
-            OW = W - KW + 3
-            C_np = np.zeros((N, CO, OH, OW), dtype="float32")
-
-            A = tvm.nd.array(A_np, ctx)
-            Wt = tvm.nd.array(Wt_np, ctx)
-            C = tvm.nd.array(C_np, ctx)
-
-            func = module["conv"]
-
-            start = perf_counter_ns()
-            func(A, Wt, C)
-            end = perf_counter_ns()
-
-            return end - start
-
-
-    def get_tvm_runner(self) -> TVMRunner:
-        return self.ConvRunner()
-
-    def get_name(self):
-        return "conv2d_benchmark"
-
-class MatmulBenchSpec(BenchSpec):
-
-    def __init__(self):
-        # Default input values for the matrix multiplication benchmark
-        self.input = {
-            "M": 128,  # Rows of A and C
-            "N": 128,  # Columns of B and C
-            "K": 128   # Columns of A, Rows of B
-        }
-
-    def get_input(self) -> dict:
-        return self.input
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/matmul/matmul.ll"))
-
-    def get_pgo_llvm_path(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/matmul/matmul-instr.so"))
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/matmul"))
-
-    class MatmulRunner(TVMRunner):
-        def run(self, module, input: dict):
-            ctx = tvm.cpu(0)
-            M = input.get("M", 128)
-            N = input.get("N", 128)
-            K = input.get("K", 128)
-
-            A_np = np.random.randn(M, K).astype("float32")
-            B_np = np.random.randn(K, N).astype("float32")
-            C_np = np.zeros((M, N), dtype="float32")
-
-            A = tvm.nd.array(A_np, ctx)
-            B = tvm.nd.array(B_np, ctx)
-            C = tvm.nd.array(C_np, ctx)
-
-            func = module["matmul"]
-
-            start = perf_counter_ns()
-            func(A, B, C)
-            end = perf_counter_ns()
-
-            return end - start
-
-
-    def get_tvm_runner(self) -> TVMRunner:
-        return self.MatmulRunner()
-
-    def get_name(self):
-        return "matmul_benchmark"
-
-class ConcatBenchSpec(BenchSpec):
-
-    def __init__(self):
-        # Default input values for the concatenation benchmark
-        self.input = {
-            "M": 128,  # Number of elements in each tensor
-            "N": 128   # Number of tensors to concatenate
-        }
-
-    def get_input(self) -> dict:
-        return self.input
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/concat/concat.ll"))
-    
-    def get_pgo_llvm_path(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/concat/concat-instr.so"))
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/concat"))
-
-    class ConcatRunner(TVMRunner):
-        def run(self, module, input: dict):
-            ctx = tvm.cpu(0)
-            M = input.get("M", 128)
-            N = input.get("N", 128)  # Number of tensors to concatenate
-
-            # Create N tensors of shape (M,) and concatenate along axis=0
-            A = tvm.nd.array(np.random.randn(M, N).astype("float32"), ctx)
-            B = tvm.nd.array(np.random.randn(M, N).astype("float32"), ctx)
-            C = tvm.nd.array(np.zeros((M*2, N), dtype="float32"), ctx)
-
-            func = module["concat"]
-            
-            start = perf_counter_ns()
-            func(A, B, C)
-            end = perf_counter_ns()
-            return end - start
-
-    def get_tvm_runner(self) -> TVMRunner:
-        return self.ConcatRunner()
-
-    def get_name(self):
-        return "concat_benchmark"
-
-class GatherBenchSpec(BenchSpec):
-    def __init__(self):
-        self.input = {
-            "M": 128,  # Number of elements in the input tensor
-            "N": 64,   # Number of indices to gather
-            "K": 64    # Number of output elements
-        }
-
-    def get_input(self) -> dict:
-        return self.input
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/gather/gather.ll"))
-    
-    def get_pgo_llvm_path(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/gather/gather-instr.so"))
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/gather"))
-
-    class GatherRunner(TVMRunner):
-        def run(self, module, input: dict):
-            ctx = tvm.cpu(0)
-            M = input.get("M", 128)
-            N = input.get("N", 64)
-            K = input.get("K", 64)
-
-            A_np = np.random.randn(M,N).astype("float32")
-            indices_np = np.random.randint(0, M, size=(K,)).astype("int32")
-            C_np = np.zeros((K,N), dtype="float32")
-
-            A = tvm.nd.array(A_np, ctx)
-            indices = tvm.nd.array(indices_np, ctx)
-            C = tvm.nd.array(C_np, ctx)
-
-            func = module["gather"]
-
-            start = perf_counter_ns()
-            func(A, indices, C)
-            end = perf_counter_ns()
-            return end - start
-
-    def get_tvm_runner(self) -> TVMRunner:
-        return self.GatherRunner()
-
-    def get_name(self):
-        return "gather_benchmark"
-
-class ReshapeBenchSpec(BenchSpec):
-
-    def __init__(self):
-        self.input = {
-            "M": 128,  # Original shape
-            "N": 64    # New shape
-        }
-    
-    def get_input(self) -> dict:
-        return self.input
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/reshape/reshape.ll"))
-    
-    def get_pgo_llvm_path(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/reshape/reshape-instr.so"))
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/reshape"))
-
-    class ReshapeRunner(TVMRunner):
-        def run(self, module, input: dict):
-            ctx = tvm.cpu(0)
-            M = input.get("M", 128)
-            N = input.get("N", 64)
-
-            A_np = np.random.randn(M,N).astype("float32")
-            C_np = np.zeros((M*N,), dtype="float32")
-
-            A = tvm.nd.array(A_np, ctx)
-            C = tvm.nd.array(C_np, ctx)
-
-            func = module["reshape"]
-
-            start = perf_counter_ns()
-            func(A, C)
-            end = perf_counter_ns()
-            return end - start
-
-    def get_tvm_runner(self) -> TVMRunner:
-        return self.ReshapeRunner()
-
-    def get_name(self):
-        return "reshape_benchmark"
-
-class ShapeBenchSpec(BenchSpec):
-
-    def __init__(self):
-        self.input = {
-            "M": 128,  # Shape dimension
-            "N": 64    # Not used in this benchmark
-        }
-    
-    def get_input(self) -> dict:
-        return self.input
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/shape/shape.ll"))
-    
-    def get_pgo_llvm_path(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/shape/shape-instr.so"))
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/shape"))
-
-    class ShapeRunner(TVMRunner):
-        def run(self, module, input: dict):
-            ctx = tvm.cpu(0)
-            M = input.get("M", 128)
-            N = input.get("N", 64)
-
-            A_np = np.random.randn(M, N).astype("float32")
-            C_np = np.zeros((2,), dtype="int32")
-
-            A = tvm.nd.array(A_np, ctx)
-            C = tvm.nd.array(C_np, ctx)
-
-            func = module["shape"]
-            
-            start = perf_counter_ns()
-            func(A, C)
-            end = perf_counter_ns()
-            return end - start 
-
-    def get_tvm_runner(self) -> TVMRunner:
-        return self.ShapeRunner()
-
-    def get_name(self):
-        return "shape_benchmark"
-
-class SqueezeBenchSpec(BenchSpec):
-    
-    def __init__(self):
-        self.input = {
-            "M": 128,  # Original shape
-            "N": 1     # Squeeze axis size
-        }
-
-    def get_input(self) -> dict:
-        return self.input
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/squeeze/squeeze.ll"))
-    
-    def get_pgo_llvm_path(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/squeeze/squeeze-instr.so"))
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/squeeze"))
-
-    class SqueezeRunner(TVMRunner):
-        def run(self, module, input: dict):
-            ctx = tvm.cpu(0)
-            M = input.get("M", 128)
-            N = input.get("N", 1)
-
-            # Input shape is (M, 1), output shape is (M,)
-            A_np = np.random.randn(M, N).astype("float32")
-            C_np = np.zeros((M,), dtype="float32")
-
-            A = tvm.nd.array(A_np, ctx)
-            C = tvm.nd.array(C_np, ctx)
-
-            func = module["squeeze"]
-            
-            start = perf_counter_ns()
-            func(A, C)
-            end = perf_counter_ns()
-            return end - start
-
-
-    def get_tvm_runner(self) -> TVMRunner:
-        return self.SqueezeRunner()
-
-    def get_name(self):
-        return "squeeze_benchmark"
-    
-class UnsqueezeBenchSpec(BenchSpec):
-    
-    def __init__(self):
-        self.input = {
-            "M": 128,  # Original shape
-            "N": 1     # Unsqueeze axis size
-        }
-
-    def get_input(self) -> dict:
-        return self.input  
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/unsqueeze/unsqueeze.ll"))
-    
-    def get_pgo_llvm_path(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/unsqueeze/unsqueeze-instr.so"))
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/unsqueeze"))
-
-    class UnsqueezeRunner(TVMRunner):
-        def run(self, module, input: dict):
-            ctx = tvm.cpu(0)
-            M = input.get("M", 128)
-            N = input.get("N", 1)
-
-            # Input shape is (M, N), output shape is (M, N, 1)
-            # But according to your creation, A is (M, N), C is unsqueezed at dim=1 -> (M, 1, N)
-            # So input shape is (M, N), output shape is (M, 1, N)
-            A_np = np.random.randn(M, N).astype("float32")
-            C_np = np.zeros((M, 1, N), dtype="float32")
-
-            A = tvm.nd.array(A_np, ctx)
-            C = tvm.nd.array(C_np, ctx)
-
-            func = module["unsqueeze"]
-
-            start = perf_counter_ns()
-            func(A, C)
-            end = perf_counter_ns()
-
-            return end - start
-
-    def get_tvm_runner(self) -> TVMRunner:
-        return self.UnsqueezeRunner()
-
-    def get_name(self):
-        return "unsqueeze_benchmark"
-
-class AddBenchSpec(BenchSpec):
-
-    def __init__(self):
-        self.input = {
-            "M": 128,  # Rows of A and B
-            "N": 128   # Columns of A and B
-        }
-
-    def get_input(self) -> dict:
-        return self.input
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/add/add.ll"))
-    
-    def get_pgo_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/add/add-instr.so"))
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/add"))
-
-    class AddRunner(TVMRunner):
-        def run(self, module, input: dict):
-            ctx = tvm.cpu(0)
-            M = input.get("M", 128)
-            N = input.get("N", 128)
-
-            A_np = np.random.randn(M, N).astype("float32")
-            B_np = np.random.randn(M, N).astype("float32")
-            C_np = np.zeros((M, N), dtype="float32")
-
-            A = tvm.nd.array(A_np, ctx)
-            B = tvm.nd.array(B_np, ctx)
-            C = tvm.nd.array(C_np, ctx)
-
-            func = module["add"]
-
-            start = perf_counter_ns()
-            func(A, B, C)
-            end = perf_counter_ns()
-            return end - start
-
-    def get_tvm_runner(self) -> TVMRunner:
-        return self.AddRunner()
-
-    def get_name(self):
-        return "add_benchmark"
-
-class CastBenchSpec(BenchSpec):
-
-    def __init__(self):
-        self.input = {
-            "M": 128,
-            "N": 128
-        }
-
-    def get_input(self) -> dict:
-        return self.input
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/cast/cast.ll"))
-    
-    def get_pgo_llvm_path(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/cast/cast-instr.so"))
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/cast"))
-
-    class CastRunner(TVMRunner):
-        def run(self, module, input: dict):
-            ctx = tvm.cpu(0)
-            M = input.get("M", 128)
-            N = input.get("N", 128)
-
-            A_np = np.random.randn(M, N).astype("float32")
-            C_np = np.zeros((M, N), dtype="int32")
-
-            A = tvm.nd.array(A_np, ctx)
-            C = tvm.nd.array(C_np, ctx)
-
-            func = module["cast"]
-
-            start = perf_counter_ns()
-            func(A, C)
-            end = perf_counter_ns()
-            return end - start
-
-    def get_tvm_runner(self) -> TVMRunner:
-        return self.CastRunner()
-
-    def get_name(self):
-        return "cast_benchmark"
-
-class MulBenchSpec(BenchSpec):
-
-    def __init__(self):
-        self.input = {
-            "M": 128,
-            "N": 128,
-            "K": 128
-        }
-
-    def get_input(self) -> dict:
-        return self.input
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/mul/mul.ll"))
-    
-    def get_pgo_llvm_path(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/mul/mul-instr.so"))
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/mul"))
-
-    class MulRunner(TVMRunner):
-        def run(self, module, input: dict):
-            ctx = tvm.cpu(0)
-            M = input.get("M", 128)
-            K = input.get("K", 128)
-            N = input.get("N", 128)
-
-            A_np = np.random.randn(M, K).astype("float32")
-            B_np = np.random.randn(K, N).astype("float32")
-            C_np = np.zeros((M, N), dtype="float32")
-
-            A = tvm.nd.array(A_np, ctx)
-            B = tvm.nd.array(B_np, ctx)
-            C = tvm.nd.array(C_np, ctx)
-
-            func = module["mul"]
-
-            start = perf_counter_ns()
-            func(A, B, C)
-            end = perf_counter_ns()
-            return end - start
-
-    def get_tvm_runner(self) -> TVMRunner:
-        return self.MulRunner()
-
-    def get_name(self):
-        return "mul_benchmark"
-
-class ReluBenchSpec(BenchSpec):
-
-    def __init__(self):
-        self.input = {
-            "M": 128,  # Rows of A
-            "N": 128
-        }
-
-    def get_input(self) -> dict:
-        return self.input
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/relu/relu.ll"))
-    
-    def get_pgo_llvm_path(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/relu/relu-instr.so"))
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/relu"))
-
-    class ReluRunner(TVMRunner):
-        def run(self, module, input: dict):
-            ctx = tvm.cpu(0)
-            M = input.get("M", 128)
-            N = input.get("N", 128)
-
-            A_np = np.random.randn(M, N).astype("float32")
-            C_np = np.zeros((M, N), dtype="float32")
-
-            A = tvm.nd.array(A_np, ctx)
-            C = tvm.nd.array(C_np, ctx)
-
-            func = module["relu"]
-
-            start = perf_counter_ns()
-            func(A, C)
-            end = perf_counter_ns()
-            return end - start
-
-    def get_tvm_runner(self) -> TVMRunner:
-        return self.ReluRunner()
-
-    def get_name(self):
-        return "relu_benchmark"
-    
-class SubBenchSpec(BenchSpec):
-
-    def __init__(self):
-        self.input = {
-            "M": 128,  # Rows of A and B
-            "N": 128   # Columns of A and B
-        }
-
-    def get_input(self) -> dict:
-        return self.input
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/sub/sub.ll"))
-    
-    def get_pgo_llvm_path(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/sub/sub-instr.so"))
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/sub"))
-
-    class SubRunner(TVMRunner):
-        def run(self, module, input: dict):
-            ctx = tvm.cpu(0)
-            M = input.get("M", 128)
-            N = input.get("N", 128)
-
-            A_np = np.random.randn(M, N).astype("float32")
-            B_np = np.random.randn(M, N).astype("float32")
-            C_np = np.zeros((M, N), dtype="float32")
-
-            A = tvm.nd.array(A_np, ctx)
-            B = tvm.nd.array(B_np, ctx)
-            C = tvm.nd.array(C_np, ctx)
-
-            func = module["sub"]
-
-            start = perf_counter_ns()
-            func(A, B, C)
-            end = perf_counter_ns()
-            return end - start
-
-    def get_tvm_runner(self) -> TVMRunner:
-        return self.SubRunner()
-
-    def get_name(self):
-        return "sub_benchmark"
-
-class TransposeBenchSpec(BenchSpec):
-
-    def __init__(self):
-        # Default input values for the transpose benchmark
-        self.input = {
-            "M": 128,  # Rows of A and C
-            "N": 128   # Columns of A and C
-        }
-
-    def get_input(self) -> dict:
-        return self.input
-
-    def get_kernel_llvm_path(self) -> str:
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/transpose/transpose.ll"))
-    
-    def get_pgo_llvm_path(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/transpose/transpose-instr.so"))
-
-    def get_directory(self):
-        return os.path.abspath(os.path.join(os.path.dirname(__file__), "./legacy/transpose"))
-
-    class TransposeRunner(TVMRunner):
-        def run(self, module, input: dict):
-            ctx = tvm.cpu(0)
-            M = input.get("M", 128)
-            N = input.get("N", 128)
-
-            A_np = np.random.randn(M, N).astype("float32")
-            C_np = np.zeros((N, M), dtype="float32")
-
-            A = tvm.nd.array(A_np, ctx)
-            C = tvm.nd.array(C_np, ctx)
-
-            func = module["transpose"]
-
-            start = perf_counter_ns()
-            func(A, C)
-            end = perf_counter_ns()
-            return end - start
-
-    def get_tvm_runner(self) -> TVMRunner:
-        return self.TransposeRunner()
-
-    def get_name(self):
-        return "transpose_benchmark"
+from benchmark import BenchSpec
+from benchmark_adhoc import *
 
 
 def get_symb_overhead(bench:BenchSpec):
-    input = bench.get_input()
+    input = bench.get_input_shape()
     kernel_llvm_path = bench.get_kernel_llvm_path()
+    if not os.path.exists(kernel_llvm_path):
+        if not os.path.exists(bench.get_directory()):
+            os.makedirs(bench.get_directory())
+        bench.generate_kernel()
 
     symb_input_file = tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".json")
     symb_input_path = symb_input_file.name
@@ -763,10 +67,24 @@ def get_symb_overhead(bench:BenchSpec):
 
 
 def get_dynm_overhead(bench:BenchSpec):
-    input_data = bench.get_input()
+    input_data = bench.get_input_shape()
     kernel_path = bench.get_kernel_llvm_path()
-    pgo_path = bench.get_pgo_llvm_path()
+    if not os.path.exists(kernel_path):
+        if not os.path.exists(bench.get_directory()):
+            os.makedirs(bench.get_directory())
+        bench.generate_kernel()
 
+    # Generate PGO LLVM object
+    cwd = os.getcwd()
+    bench_dir = bench.get_directory()
+    kernel_path = bench.get_kernel_llvm_path()
+    
+    os.chdir(bench_dir)
+    kernel_base = os.path.splitext(os.path.basename(kernel_path))[0]
+    pgo_path = f"{kernel_base}-instr.so"
+    subprocess.run(['instrGen', kernel_path, pgo_path], check=True)
+
+    # Run the PGO instrumented module
     runner = bench.get_tvm_runner()
     module = tvm.runtime.load_module(pgo_path)
     exec_ns = runner.run(module, input_data)
@@ -784,73 +102,92 @@ def get_dynm_overhead(bench:BenchSpec):
     init_end = perf_counter_ns()
 
     init_ns = init_end - init_start
+    del module
+
+    # handle profiling results
+    profraw_files = [f for f in os.listdir('.') if f.endswith('.profraw')]
+    if profraw_files:
+        profraw_file = profraw_files[0]
+        os.remove(profraw_file)
+    else:
+        raise RuntimeError("No profraw file found. Make sure the instrumented run was successful.")
+    os.chdir(cwd)
+
     return init_ns, exec_ns
 
 
-def run_benchmark(size, label):
-    bench = None
+def run_benchmark(bench: BenchSpec, size):
+    # Adjust the input_shape based on the benchmark type
+    label = bench.get_name()
+
     if label == "conv":
-        bench = ConvBenchSpec()
-        bench.input["H"] = size
-        bench.input["W"] = size 
+        bench.input_shape["H"] = size
+        bench.input_shape["W"] = size
     elif label == "matmul":
-        bench = MatmulBenchSpec()
-        bench.input["M"] = size
-        bench.input["N"] = size
-        bench.input["K"] = size
-    elif label == "add":
-        bench = AddBenchSpec()
-        bench.input["M"] = size
-        bench.input["N"] = size
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = size
+        bench.input_shape["K"] = size
+    elif label in ["add", "sub", "relu", "cast", "transpose", "div", "sum", "pow", "sqrt", "clip", "log", "exp", "tanh"]:
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = size
     elif label == "mul":
-        bench = MulBenchSpec()
-        bench.input["M"] = size
-        bench.input["N"] = size
-        bench.input["K"] = size
-    elif label == "sub":
-        bench = SubBenchSpec()
-        bench.input["M"] = size
-        bench.input["N"] = size
-    elif label == "relu":
-        bench = ReluBenchSpec()
-        bench.input["M"] = size
-        bench.input["N"] = size
-    elif label == "cast":
-        bench = CastBenchSpec()
-        bench.input["M"] = size
-        bench.input["N"] = size
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = size
+        bench.input_shape["K"] = size
     elif label == "concat":
-        bench = ConcatBenchSpec()
-        bench.input["M"] = size
-        bench.input["N"] = size
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = size
     elif label == "gather":
-        bench = GatherBenchSpec()
-        bench.input["M"] = size
-        bench.input["N"] = size
-        bench.input["K"] = size
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = size
+        bench.input_shape["K"] = size
     elif label == "reshape":
-        bench = ReshapeBenchSpec()
-        bench.input["M"] = size
-        bench.input["N"] = size
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = size
     elif label == "shape":
-        bench = ShapeBenchSpec()
-        bench.input["M"] = size
-        bench.input["N"] = size
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = size
     elif label == "squeeze":
-        bench = SqueezeBenchSpec()
-        bench.input["M"] = size
-        bench.input["N"] = 1
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = 1
     elif label == "unsqueeze":
-        bench = UnsqueezeBenchSpec()
-        bench.input["M"] = size
-        bench.input["N"] = 1
-    elif label == "transpose":
-        bench = TransposeBenchSpec()
-        bench.input["M"] = size
-        bench.input["N"] = size
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = 1
+    elif label == "slice":
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = size
+        bench.input_shape["start"] = 0
+        bench.input_shape["end"] = size
+    elif label == "batch_norm":
+        bench.input_shape["N"] = 16
+        bench.input_shape["C"] = 3
+        bench.input_shape["H"] = size
+        bench.input_shape["W"] = size
+    elif label == "leaky_relu":
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = size
+    elif label == "gemm":
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = size
+        bench.input_shape["K"] = size
+    elif label == "softmax":
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = size
+    elif label == "maxpool":
+        bench.input_shape["H"] = size
+        bench.input_shape["W"] = size
+    elif label == "pad":
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = size
+    elif label == "instance_norm":
+        bench.input_shape["H"] = size
+        bench.input_shape["W"] = size
+    elif label == "nonzero":
+        bench.input_shape["M"] = size
+        bench.input_shape["N"] = size
     else:
         raise ValueError(f"Unsupported benchmark label: {label}")
-    
+
     dynm_init_ns, dynm_exec_ns = get_dynm_overhead(bench)
     symb_init_ns, symb_exec_ns = get_symb_overhead(bench)
 
@@ -858,7 +195,7 @@ def run_benchmark(size, label):
         dynm_init_ns, dynm_exec_ns, symb_init_ns, symb_exec_ns
     )
 
-def run_benchmarks(sizes, label, repeat=5):
+def run_benchmarks(bench: BenchSpec, sizes, repeat=3):
 
     results = []
     for size in sizes:
@@ -868,7 +205,7 @@ def run_benchmarks(sizes, label, repeat=5):
         symb_exec_times = []
         for _ in range(repeat):
             sleep(1)  # Sleep for 1 second between runs to avoid any potential interference
-            result = run_benchmark(size, label)
+            result = run_benchmark(bench, size)
             dynm_init_times.append(result.dynm_init_ns)
             dynm_exec_times.append(result.dynm_exec_ns)
             symb_init_times.append(result.symb_init_ns)
@@ -879,29 +216,44 @@ def run_benchmarks(sizes, label, repeat=5):
         avg_symb_init_ns = sum(symb_init_times) // len(symb_init_times)
         avg_symb_exec_ns = sum(symb_exec_times) // len(symb_exec_times)
 
+        cv_dynm_init = (stdev(dynm_init_times) / mean(dynm_init_times)) if len(dynm_init_times) > 1 else 0
+        cv_dynm_exec = (stdev(dynm_exec_times) / mean(dynm_exec_times)) if len(dynm_exec_times) > 1 else 0
+        cv_symb_init = (stdev(symb_init_times) / mean(symb_init_times)) if len(symb_init_times) > 1 else 0
+        cv_symb_exec = (stdev(symb_exec_times) / mean(symb_exec_times)) if len(symb_exec_times) > 1 else 0
+
         results.append({
             "size": size, 
             "avg_dynm_init_ns": avg_dynm_init_ns, 
             "avg_dynm_exec_ns": avg_dynm_exec_ns, 
             "avg_symb_init_ns": avg_symb_init_ns, 
-            "avg_symb_exec_ns": avg_symb_exec_ns
+            "avg_symb_exec_ns": avg_symb_exec_ns,
+            "cv_dynm_init": cv_dynm_init,
+            "cv_dynm_exec": cv_dynm_exec,
+            "cv_symb_init": cv_symb_init,
+            "cv_symb_exec": cv_symb_exec
         })
         print(
-            f"{label} size={size},\n"
-            f"  avg_dynm_init_time={avg_dynm_init_ns} ns,\n"
-            f"  avg_dynm_exec_time={avg_dynm_exec_ns} ns,\n"
-            f"  avg_symb_init_time={avg_symb_init_ns} ns,\n"
-            f"  avg_symb_exec_time={avg_symb_exec_ns} ns"
+            f"{bench.get_name()} size={size},\n"
+            f"  avg_dynm_init_time={avg_dynm_init_ns} ns, cv={cv_dynm_init:.2%},\n"
+            f"  avg_dynm_exec_time={avg_dynm_exec_ns} ns, cv={cv_dynm_exec:.2%},\n"
+            f"  avg_symb_init_time={avg_symb_init_ns} ns, cv={cv_symb_init:.2%},\n"
+            f"  avg_symb_exec_time={avg_symb_exec_ns} ns, cv={cv_symb_exec:.2%}"
         )
     return results
 
 
 def save_results_to_csv(filename, labels, results_list: list[list]):
-    with open(filename, "w", newline="") as csvfile:
-        fieldnames = ["label", "size", "avg_dynm_init_ns", "avg_dynm_exec_ns", "avg_symb_init_ns", "avg_symb_exec_ns"]
+    file_exists = os.path.exists(filename)
+    with open(filename, "a", newline="") as csvfile:  # Open in append mode
+        fieldnames = [
+            "label", "size", "avg_dynm_init_ns", "avg_dynm_exec_ns", 
+            "avg_symb_init_ns", "avg_symb_exec_ns", "cv_dynm_init", 
+            "cv_dynm_exec", "cv_symb_init", "cv_symb_exec"
+        ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
-        writer.writeheader()
+        if not file_exists:  # Write header only if the file is new
+            writer.writeheader()
         for label, results in zip(labels, results_list):
             for result in results:
                 row = {"label": label}
@@ -911,36 +263,60 @@ def save_results_to_csv(filename, labels, results_list: list[list]):
 
 def get_all_results():
 
-    matmul_sizes = [64, 128, 256, 512, 1024, 2048, 4096]
-    sizes = [64, 128, 256, 512, 1024, 2048, 4096, 8192]
-    labels = [
-        "conv", "matmul", "add", "mul", "sub", "relu", "cast", 
-        "concat", "gather", "reshape", "shape", "squeeze", 
-        "unsqueeze", "transpose"
+    matmul_sizes = [64, 128, 256, 512, 1024, 2048]
+    # sizes = [64, 128, 256, 512, 1024, 2048, 4096]
+    sizes = [8192]
+    # sizes = [64]
+    # matmul_sizes = [64]
+    
+    specs= [
+        ConcatBenchSpec,
+        GatherBenchSpec,
+        ReshapeBenchSpec,
+        ShapeBenchSpec,
+        SqueezeBenchSpec,
+        UnsqueezeBenchSpec,
+        AddBenchSpec,
+        CastBenchSpec,
+        MulBenchSpec,
+        ReluBenchSpec,
+        SubBenchSpec,
+        TransposeBenchSpec,
+        SliceBenchSpec,
+        DivBenchSpec,
+        SumBenchSpec,
+        NonZeroBenchSpec,
+        PowBenchSpec,
+        SqrtBenchSpec,
+        ClipBenchSpec,
+        LeakyReluBenchSpec,
+        SoftmaxBenchSpec,
+        TanhBenchSpec,
+        MaxPoolBenchSpec,
+        ExpBenchSpec,
+        LogBenchSpec,
+        PadBenchSpec,
+        InstanceNormalizationBenchSpec,
+        # ConvBenchSpec,
+        # MatmulBenchSpec,
+        # GemmBenchSpec,
+        # BatchNormalizationBenchSpec,
     ]
+
+    benchmarks = [spec(base_dir='./optimized') for spec in specs]
+
+    labels = [bench.get_name() for bench in benchmarks]
+
     results = []
-    for label in labels:
-        if label == "matmul":
-            result = run_benchmarks(matmul_sizes, label)
-            results.append(result)
+    for bench in benchmarks:
+        if bench.get_name() == "matmul":
+            result = run_benchmarks(bench, matmul_sizes)
         else:
-            result = run_benchmarks(sizes, label)
-            results.append(result)
-    
-    save_results_to_csv("overhead_results.csv", labels, results)
-
-
-def test():
-    sizes = [64, 128, 256, 512, 1024, 2048, 4096, 8192]
-    labels = ["add"]
-
-    results = []
-    for label in labels:
-        result = run_benchmarks(sizes, label)
+            result = run_benchmarks(bench, sizes)
         results.append(result)
-    
-    save_results_to_csv("overhead_test_results.csv", labels, results)
+        # Save results gradually after each benchmark
+        save_results_to_csv("overhead_results_31.csv", [bench.get_name()], [result])
 
 if __name__ == "__main__":
-    # get_all_results()
-    test()
+    get_all_results()
+    # test()
