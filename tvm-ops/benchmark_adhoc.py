@@ -4,24 +4,44 @@ import tvm
 import tvm.topi
 import numpy as np
 from time import perf_counter_ns
+from tvm import relax, IRModule, dlight, te
 
 class BaseBenchSpec(BenchSpec):
-    def apply_optimizations(self, IRmod):
+    def apply_optimizations(self, IRmod:IRModule) -> IRModule:
         """Apply a common sequence of optimizations to the IRModule."""
         seq = tvm.transform.Sequential([
-            tvm.tir.transform.Simplify(),
-            tvm.tir.transform.LoopPartition(),
-            tvm.tir.transform.VectorizeLoop(),
-            tvm.tir.transform.UnrollLoop(),
-            tvm.tir.transform.InjectVirtualThread(),
-            tvm.tir.transform.InjectDoubleBuffer(),
-            tvm.tir.transform.ThreadSync("shared"),
-            tvm.tir.transform.ThreadSync("warp"),
-            tvm.tir.transform.RemoveNoOp(),
-            tvm.tir.transform.HoistIfThenElse(),
-            tvm.tir.transform.SplitHostDevice()
+            relax.transform.FuseTransposeMatmul(),
+                # Phase 2. Lowering to TIR, inherited TVM Relax's official "zero" pipeline
+                relax.transform.LegalizeOps(),
+                relax.transform.AnnotateTIROpPattern(),
+                relax.transform.FoldConstant(),
+                relax.transform.FuseOps(),
+                relax.transform.FuseTIR(),
+                # Phase 3. Passes on TIR
+                relax.transform.DeadCodeElimination(),
+                # Phase 4. Low-level Optimizations
+                dlight.ApplyDefaultSchedule(
+                    dlight.gpu.Matmul(),
+                    dlight.gpu.GEMV(),
+                    dlight.gpu.Reduction(),
+                    dlight.gpu.GeneralReduction(),
+                    dlight.gpu.Fallback(),
+                    dlight.cpu.GEMV(),
+                ),
+                # Phase 5. Lowering to VM bytecode
+                relax.transform.RewriteDataflowReshape(),
+                relax.transform.ToNonDataflow(),
+                relax.transform.RemovePurityChecking(),
+                relax.transform.CallTIRRewrite(),
+                relax.transform.StaticPlanBlockMemory(),
+                relax.transform.RewriteCUDAGraph(),
+                relax.transform.LowerAllocTensor(),
+                relax.transform.KillAfterLastUse(),
+                relax.transform.LowerRuntimeBuiltin(),
+                relax.transform.VMShapeLower(),
+                relax.transform.AttachGlobalSymbol(),
         ])
-        with tvm.transform.PassContext(opt_level=3):
+        with tvm.target.Target("llvm"), tvm.transform.PassContext(opt_level=3):
             return seq(IRmod)
 
 class ConvBenchSpec(BaseBenchSpec):

@@ -107,6 +107,30 @@ def benchmark(spec: BenchSpec, debug=False):
     else:
         print_summary(summary)
 
+def get_basic_block_numbers(spec: BenchSpec):
+    if not os.path.exists(spec.get_kernel_llvm_path()):
+        if not os.path.exists(spec.get_directory()):
+            os.makedirs(spec.get_directory())
+        spec.generate_kernel()
+    
+    import csv
+    file_exists = os.path.isfile('spec_basic_block_numbers.csv')
+    with open('spec_basic_block_numbers.csv', 'a') as f:
+        writer = csv.writer(f)
+        if not file_exists:
+            writer.writerow(['name', 'count'])
+
+        # Write the benchmark data
+
+        instr_counts = get_exact_count(spec)
+        symb_counts = get_symb_count(spec)
+
+        # Compare results
+        _, summary = compare_results(instr_counts, symb_counts)
+        writer.writerow([spec.get_name(), summary['total']])
+
+
+
 
 import argparse
 if __name__ == '__main__':
@@ -118,7 +142,7 @@ if __name__ == '__main__':
     from benchmark_adhoc import *
 
     for bench_cls in [
-        # ConvBenchSpec,
+        ConvBenchSpec,
         # MatmulBenchSpec,
         # ConcatBenchSpec,
         # GatherBenchSpec,
@@ -142,19 +166,20 @@ if __name__ == '__main__':
         # ClipBenchSpec,
         # LeakyReluBenchSpec,
         # GemmBenchSpec,
-        SoftmaxBenchSpec,
+        # SoftmaxBenchSpec,
         # TanhBenchSpec,
         # MaxPoolBenchSpec,
         # ExpBenchSpec,
         # LogBenchSpec,
-        # PadBenchSpec,
+        PadBenchSpec,
         # InstanceNormalizationBenchSpec
     ]:
         benchmark(bench_cls(base_dir=BASE_DIR), debug=True)
-    
+        # get_basic_block_numbers(bench_cls(base_dir=BASE_DIR))
     exit()
 
     from benchmark_simple import SpecCollection
+
     specs = SpecCollection(BASE_DIR).get_specs()
     for spec in specs:
         benchmark(spec, debug=False)
