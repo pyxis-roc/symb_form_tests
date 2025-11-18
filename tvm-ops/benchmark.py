@@ -142,8 +142,8 @@ if __name__ == '__main__':
     from benchmark_adhoc import *
 
     for bench_cls in [
-        ConvBenchSpec,
-        # MatmulBenchSpec,
+        # ConvBenchSpec,
+        MatmulBenchSpec,
         # ConcatBenchSpec,
         # GatherBenchSpec,
         # ReshapeBenchSpec,
@@ -171,7 +171,7 @@ if __name__ == '__main__':
         # MaxPoolBenchSpec,
         # ExpBenchSpec,
         # LogBenchSpec,
-        PadBenchSpec,
+        # PadBenchSpec,
         # InstanceNormalizationBenchSpec
     ]:
         benchmark(bench_cls(base_dir=BASE_DIR), debug=True)

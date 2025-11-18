@@ -74,6 +74,49 @@ def plot_all_init_times(op_labels, avg_dynm_inits, avg_symb_inits, spec_bb_count
     plot.save("all-init-with-line.pdf")
     print(plot)
 
+def plot_all_init_times_matplotlib(op_labels, avg_dynm_inits, avg_symb_inits, spec_bb_counts):
+    # Prepare data
+    data = sorted(
+        zip(op_labels, avg_dynm_inits, avg_symb_inits, [spec_bb_counts[label] for label in op_labels]),
+        key=lambda x: x[3],  # Sort by basic blocks
+        reverse=False
+    )
+    operations, avg_dynm_inits, avg_symb_inits, basic_blocks = zip(*data)
+    operations = [label.capitalize() for label in operations]
+
+    # Create the figure and axis
+    fig, ax1 = plt.subplots(figsize=(10, 6))
+
+    # Bar plot for average times
+    bar_width = 0.35
+    x = np.arange(len(operations))
+    ax1.bar(x - bar_width / 2, avg_dynm_inits, bar_width, label='PGO', color='#1f77b4')
+    ax1.bar(x + bar_width / 2, avg_symb_inits, bar_width, label='Symbolic', color='#ff7f0e')
+
+    # Customize the first y-axis
+    ax1.set_xlabel('Operation')
+    ax1.set_ylabel('Avg Analysis Time (ms)', color='black')
+    ax1.set_title('Avg Analysis Time: PGO vs Symbolic')
+    ax1.set_xticks(x)
+    ax1.set_xticklabels(operations, rotation=30, ha='right')
+    ax1.legend(loc='upper left')
+    ax1.tick_params(axis='y', labelcolor='black')
+
+    # Create the second y-axis for basic blocks
+    ax2 = ax1.twinx()
+    ax2.plot(x, basic_blocks, color='black', marker='o', markersize=5, label='Basic Blocks')  # Reduced dot size
+    ax2.set_ylabel('Basic Blocks', color='black')
+    ax2.tick_params(axis='y', labelcolor='black')
+
+    # Add labels for basic blocks
+    for i, bb in enumerate(basic_blocks):
+        ax2.text(i, bb + 0.5, str(bb), color='black', ha='center', va='bottom', fontsize=8)  # Moved text up
+
+    # Adjust layout and save the plot
+    fig.tight_layout()
+    plt.savefig("all-init-with-line-matplotlib.pdf")
+    plt.show()
+
 # Example usage for "add"
 filename = "overhead_results_31.csv"
 # Get all unique op labels from the CSV
@@ -81,9 +124,9 @@ with open(filename, "r") as f:
     reader = csv.DictReader(f)
     op_labels = sorted(set(row["label"] for row in reader))
 
-with open('spec_basic_block_numbers.csv', 'r') as f:
+with open('characterize.csv', 'r') as f:
     reader = csv.DictReader(f)
-    spec_bb_counts = {row['name']: int(row['count']) for row in reader}
+    spec_bb_counts = {row['name']: int(row['BB']) for row in reader}
 
 # Plot all init times together
 avg_dynm_inits = []
@@ -101,4 +144,4 @@ for op_label in op_labels:
     dynm_exec_list.append(dynm_exec)
     symb_exec_list.append(symb_exec)
 
-plot_all_init_times(op_labels, avg_dynm_inits, avg_symb_inits, spec_bb_counts)
+plot_all_init_times_matplotlib(op_labels, avg_dynm_inits, avg_symb_inits, spec_bb_counts)
