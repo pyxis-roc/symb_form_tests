@@ -17,6 +17,7 @@ import csv
 import numpy as np
 import re
 from statistics import stdev, mean
+import gc
 
 from benchmark import BenchSpec
 from benchmark_adhoc import *
@@ -39,30 +40,26 @@ def get_symb_overhead(bench:BenchSpec):
     kernel_base_name = os.path.splitext(os.path.basename(kernel_llvm_path))[0]
     func_name = kernel_base_name + "_compute_"
     result = subprocess.run(
-        ['symb-viewer', kernel_llvm_path, func_name, f'-subs={symb_input_path}', '--quiet', '--time'],
+        ['symb-viewer', 'formula', kernel_llvm_path, func_name, f'-subs={symb_input_path}', '--quiet', '--time'],
         check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
         text=True
     )
-    # Example output:
-    # ----------------------------- 
-    # Total time: 2.383399e-02s
-    # Substitution time: 1.818739e-03s
-    total_time = None
-    subst_time = None
+    # Updated parsing for ms-based symb-viewer timing output
+    timing = {}
     for line in result.stdout.splitlines():
-        m_total = re.search(r'Total time:\s*([0-9.eE+-]+)s', line)
-        m_subst = re.search(r'Substitution time:\s*([0-9.eE+-]+)s', line)
-        if m_total:
-            total_time = float(m_total.group(1))
-        if m_subst:
-            subst_time = float(m_subst.group(1))
-    if total_time is None or subst_time is None:
-        raise RuntimeError("Failed to parse timing output from symb-viewer")
-    total_elapsed = int(total_time * 1e9)
-    exec_elapsed = int(subst_time * 1e9)
-
+        m = re.match(r'\s*([A-Za-z ]+):\s*([0-9.eE+-]+)ms', line)
+        if m:
+            key = m.group(1).strip().lower().replace(' ', '_')
+            val = float(m.group(2))
+            timing[key] = val
+    total_time = timing.get('total_time', 0.0)
+    subst_time = timing.get('substitution_time', 0.0)
+    if total_time == 0.0 or subst_time == 0.0:
+        raise RuntimeError(f"Failed to parse timing output from symb-viewer. Parsed: {timing}")
+    total_elapsed = int(total_time * 1e6)  # ms to ns
+    exec_elapsed = int(subst_time * 1e6)  # ms to ns
     return total_elapsed - exec_elapsed, exec_elapsed
 
 
@@ -86,9 +83,34 @@ def get_dynm_overhead(bench:BenchSpec):
 
     # Run the PGO instrumented module
     runner = bench.get_tvm_runner()
+
+    # Measure baseline TVM module destruction time without running (no file writes expected)
+    # baseline_mod = tvm.runtime.load_module(kernel_path)
+    # gc.collect()
+    # baseline_start = perf_counter_ns()
+    # del baseline_mod
+    # baseline_end = perf_counter_ns()
+    # gc.collect()
+    # baseline_del_ns = baseline_end - baseline_start
+
     module = tvm.runtime.load_module(pgo_path)
     exec_ns = runner.run(module, input_data)
+    # gc.collect()
+    # file_start = perf_counter_ns()
+    # del module
+    # file_end = perf_counter_ns()
+    # gc.collect()
+    # # Isolate file operation time by subtracting baseline deletion overhead
+    # file_ops_ns = (file_end - file_start) - baseline_del_ns
+    # if file_ops_ns < 0:
+    #     file_ops_ns = 0
+    # print(
+    #     f"[overhead][{bench.get_name()}] delete_file_ops_ns={file_ops_ns} (raw_del={file_end - file_start}, baseline={baseline_del_ns})",
+    #     flush=True,
+    # )
+    # exec_ns += file_ops_ns
 
+    module = tvm.runtime.load_module(pgo_path)
     temp_file = tempfile.NamedTemporaryFile(mode="w+", delete=False, suffix=".ll")
     temp_file_path = temp_file.name
 
@@ -114,6 +136,80 @@ def get_dynm_overhead(bench:BenchSpec):
     os.chdir(cwd)
 
     return init_ns, exec_ns
+
+
+def get_instance_timing(bench: BenchSpec):
+    """Generate and run instance executable, return kernel execution time in ns.
+
+    Steps:
+    - Use symb-viewer to emit instance.ll for the compute function
+    - Compile with clang++
+    - Run ./a.out with args built from bench's input shape and symbolic patches
+    - Parse stdout for the timing line: "Kernel execution time: ... (XX.XX ns @ ...)"
+    """
+    input_shape = bench.get_input_shape()
+    kernel_path = bench.get_kernel_llvm_path()
+    if not os.path.exists(kernel_path):
+        if not os.path.exists(bench.get_directory()):
+            os.makedirs(bench.get_directory())
+        bench.generate_kernel()
+
+    cwd = os.getcwd()
+    bench_dir = bench.get_directory()
+    os.chdir(bench_dir)
+
+    try:
+        kernel_base_name = os.path.splitext(os.path.basename(kernel_path))[0]
+        func_name = kernel_base_name + "_compute_"
+        instance_path = "instance.ll"
+
+        with open(instance_path, "w") as f:
+            subprocess.run(
+                ['symb-viewer', 'instance', kernel_path, func_name],
+                stdout=f,
+                stderr=subprocess.DEVNULL,
+                check=True,
+            )
+
+        subprocess.run(
+            ['clang++', '-O0', '-w', instance_path],
+            check=True,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+
+        # Prepare args: sort by key length then alphabet
+        input_args = {**input_shape, **bench.get_symbolic_patches()}
+        sorted_keys = sorted(input_args.keys(), key=lambda x: (len(x), x))
+        args = [str(input_args[k]) for k in sorted_keys]
+
+        result = subprocess.run(
+            ['./a.out'] + args,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            check=True,
+        )
+
+        # Parse ns from: Kernel execution time: 51 cycles (40.28 ns @ 1.266 GHz)
+        ns_val = None
+        for line in result.stdout.splitlines():
+            m = re.search(r"Kernel execution time:\s*.*\(([^)]+)\)", line)
+            if m:
+                inner = m.group(1)
+                m2 = re.search(r"([0-9.]+)\s*ns", inner)
+                if m2:
+                    ns_val = float(m2.group(1))
+                    break
+        if ns_val is None:
+            raise RuntimeError("Failed to parse instance timing from output.")
+        return int(ns_val)  # ns_val is in ns; return as int nanoseconds
+    finally:
+        if os.path.exists('instance.ll'):
+            os.remove('instance.ll')
+        if os.path.exists('a.out'):
+            os.remove('a.out')
+        os.chdir(cwd)
 
 
 def run_benchmark(bench: BenchSpec, size):
@@ -190,9 +286,10 @@ def run_benchmark(bench: BenchSpec, size):
 
     dynm_init_ns, dynm_exec_ns = get_dynm_overhead(bench)
     symb_init_ns, symb_exec_ns = get_symb_overhead(bench)
+    inst_exec_ns = get_instance_timing(bench)
 
-    return namedtuple("BenchmarkResult", ["dynm_init_ns", "dynm_exec_ns", "symb_init_ns", "symb_exec_ns"])(
-        dynm_init_ns, dynm_exec_ns, symb_init_ns, symb_exec_ns
+    return namedtuple("BenchmarkResult", ["dynm_init_ns", "dynm_exec_ns", "symb_init_ns", "symb_exec_ns", "inst_exec_ns"])(
+        dynm_init_ns, dynm_exec_ns, symb_init_ns, symb_exec_ns, inst_exec_ns
     )
 
 def run_benchmarks(bench: BenchSpec, sizes, repeat=3):
@@ -203,6 +300,7 @@ def run_benchmarks(bench: BenchSpec, sizes, repeat=3):
         dynm_exec_times = []
         symb_init_times = []
         symb_exec_times = []
+        inst_exec_times = []
         for _ in range(repeat):
             sleep(1)  # Sleep for 1 second between runs to avoid any potential interference
             result = run_benchmark(bench, size)
@@ -210,16 +308,19 @@ def run_benchmarks(bench: BenchSpec, sizes, repeat=3):
             dynm_exec_times.append(result.dynm_exec_ns)
             symb_init_times.append(result.symb_init_ns)
             symb_exec_times.append(result.symb_exec_ns)
+            inst_exec_times.append(result.inst_exec_ns)
             
         avg_dynm_init_ns = sum(dynm_init_times) // len(dynm_init_times)
         avg_dynm_exec_ns = sum(dynm_exec_times) // len(dynm_exec_times)
         avg_symb_init_ns = sum(symb_init_times) // len(symb_init_times)
         avg_symb_exec_ns = sum(symb_exec_times) // len(symb_exec_times)
+        avg_inst_exec_ns = sum(inst_exec_times) // len(inst_exec_times)
 
         cv_dynm_init = (stdev(dynm_init_times) / mean(dynm_init_times)) if len(dynm_init_times) > 1 else 0
         cv_dynm_exec = (stdev(dynm_exec_times) / mean(dynm_exec_times)) if len(dynm_exec_times) > 1 else 0
         cv_symb_init = (stdev(symb_init_times) / mean(symb_init_times)) if len(symb_init_times) > 1 else 0
         cv_symb_exec = (stdev(symb_exec_times) / mean(symb_exec_times)) if len(symb_exec_times) > 1 else 0
+        cv_inst_exec = (stdev(inst_exec_times) / mean(inst_exec_times)) if len(inst_exec_times) > 1 else 0
 
         results.append({
             "size": size, 
@@ -227,17 +328,20 @@ def run_benchmarks(bench: BenchSpec, sizes, repeat=3):
             "avg_dynm_exec_ns": avg_dynm_exec_ns, 
             "avg_symb_init_ns": avg_symb_init_ns, 
             "avg_symb_exec_ns": avg_symb_exec_ns,
+            "avg_inst_exec_ns": avg_inst_exec_ns,
             "cv_dynm_init": cv_dynm_init,
             "cv_dynm_exec": cv_dynm_exec,
             "cv_symb_init": cv_symb_init,
-            "cv_symb_exec": cv_symb_exec
+            "cv_symb_exec": cv_symb_exec,
+            "cv_inst_exec": cv_inst_exec
         })
         print(
             f"{bench.get_name()} size={size},\n"
             f"  avg_dynm_init_time={avg_dynm_init_ns} ns, cv={cv_dynm_init:.2%},\n"
             f"  avg_dynm_exec_time={avg_dynm_exec_ns} ns, cv={cv_dynm_exec:.2%},\n"
             f"  avg_symb_init_time={avg_symb_init_ns} ns, cv={cv_symb_init:.2%},\n"
-            f"  avg_symb_exec_time={avg_symb_exec_ns} ns, cv={cv_symb_exec:.2%}"
+            f"  avg_symb_exec_time={avg_symb_exec_ns} ns, cv={cv_symb_exec:.2%},\n"
+            f"  avg_inst_exec_time={avg_inst_exec_ns} ns, cv={cv_inst_exec:.2%}"
         )
     return results
 
@@ -247,8 +351,8 @@ def save_results_to_csv(filename, labels, results_list: list[list]):
     with open(filename, "a", newline="") as csvfile:  # Open in append mode
         fieldnames = [
             "label", "size", "avg_dynm_init_ns", "avg_dynm_exec_ns", 
-            "avg_symb_init_ns", "avg_symb_exec_ns", "cv_dynm_init", 
-            "cv_dynm_exec", "cv_symb_init", "cv_symb_exec"
+            "avg_symb_init_ns", "avg_symb_exec_ns", "avg_inst_exec_ns",
+            "cv_dynm_init", "cv_dynm_exec", "cv_symb_init", "cv_symb_exec", "cv_inst_exec"
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
 
@@ -263,33 +367,30 @@ def save_results_to_csv(filename, labels, results_list: list[list]):
 
 def get_all_results():
 
-    matmul_sizes = [64, 128, 256, 512, 1024, 2048]
-    # sizes = [64, 128, 256, 512, 1024, 2048, 4096]
-    sizes = [8192]
-    # sizes = [64]
-    # matmul_sizes = [64]
+    sizes = [64, 128, 256, 512, 1024, 2048, 4096, 8192]
+    limited_sizes = [64, 128, 256, 512, 1024, 2048, 4096]
     
-    specs= [
-        ConcatBenchSpec,
-        GatherBenchSpec,
-        ReshapeBenchSpec,
-        ShapeBenchSpec,
-        SqueezeBenchSpec,
-        UnsqueezeBenchSpec,
-        AddBenchSpec,
-        CastBenchSpec,
-        MulBenchSpec,
-        ReluBenchSpec,
-        SubBenchSpec,
-        TransposeBenchSpec,
-        SliceBenchSpec,
-        DivBenchSpec,
-        SumBenchSpec,
-        NonZeroBenchSpec,
-        PowBenchSpec,
-        SqrtBenchSpec,
-        ClipBenchSpec,
-        LeakyReluBenchSpec,
+    regular_specs = [
+        # ConcatBenchSpec,
+        # GatherBenchSpec,
+        # ReshapeBenchSpec,
+        # ShapeBenchSpec,
+        # SqueezeBenchSpec,
+        # UnsqueezeBenchSpec,
+        # AddBenchSpec,
+        # CastBenchSpec,
+        # MulBenchSpec,
+        # ReluBenchSpec,
+        # SubBenchSpec,
+        # TransposeBenchSpec,
+        # SliceBenchSpec,
+        # DivBenchSpec,
+        # SumBenchSpec,
+        # NonZeroBenchSpec,
+        # PowBenchSpec,
+        # SqrtBenchSpec,
+        # ClipBenchSpec,
+        # LeakyReluBenchSpec,
         SoftmaxBenchSpec,
         TanhBenchSpec,
         MaxPoolBenchSpec,
@@ -297,26 +398,30 @@ def get_all_results():
         LogBenchSpec,
         PadBenchSpec,
         InstanceNormalizationBenchSpec,
-        # ConvBenchSpec,
-        # MatmulBenchSpec,
-        # GemmBenchSpec,
-        # BatchNormalizationBenchSpec,
+    ]
+    
+    heavy_specs = [
+        ConvBenchSpec,
+        MatmulBenchSpec,
+        GemmBenchSpec,
+        BatchNormalizationBenchSpec,
     ]
 
-    benchmarks = [spec(base_dir='./optimized') for spec in specs]
-
-    labels = [bench.get_name() for bench in benchmarks]
-
     results = []
-    for bench in benchmarks:
-        if bench.get_name() == "matmul":
-            result = run_benchmarks(bench, matmul_sizes)
-        else:
-            result = run_benchmarks(bench, sizes)
+    
+    # Run regular specs with full sizes
+    for spec in regular_specs:
+        bench = spec(base_dir='./optimized')
+        result = run_benchmarks(bench, sizes)
         results.append(result)
-        # Save results gradually after each benchmark
-        save_results_to_csv("overhead_results_31.csv", [bench.get_name()], [result])
+        save_results_to_csv("overhead_results_with_instance.csv", [bench.get_name()], [result])
+    
+    # Run heavy specs with limited sizes
+    for spec in heavy_specs:
+        bench = spec(base_dir='./optimized')
+        result = run_benchmarks(bench, limited_sizes)
+        results.append(result)
+        save_results_to_csv("overhead_results_with_instance.csv", [bench.get_name()], [result])
 
 if __name__ == "__main__":
     get_all_results()
-    # test()

@@ -49,15 +49,15 @@ class ConvBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {
-            "inst_pad_temp_2": 1,
             "null": 0,
-            'inst_smax_1': 226
+            'inst_smax_1': 226,
+            "inst_pad_temp_2": 1,
         }
         self.input_shape = {
-            "N": 1,  # Batch size
-            "CI": 3,  # Input channels
             "H": 224,  # Input height
+            "N": 1,  # Batch size
             "W": 224,  # Input width
+            "CI": 3,  # Input channels
             "CO": 64,  # Output channels
             "KH": 7,   # Kernel height
             "KW": 7,   # Kernel width
@@ -129,9 +129,9 @@ class MatmulBenchSpec(BaseBenchSpec):
         self.base_dir = base_dir
         self.symbolic_patches = {}
         self.input_shape = {
+            "K": 128,  # Columns of A, Rows of B
             "M": 128,  # Rows of A and C
             "N": 128,  # Columns of B and C
-            "K": 128   # Columns of A, Rows of B
         }
 
     def get_input_shape(self) -> dict:
@@ -227,6 +227,25 @@ class ConcatBenchSpec(BaseBenchSpec):
             func(A, B, C)
             end = perf_counter_ns()
             return end - start
+        
+        def func(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)  # Number of tensors to concatenate
+
+            # Create N tensors of shape (M,) and concatenate along axis=0
+            A = tvm.nd.array(np.random.randn(M, N).astype("float32"), ctx)
+            B = tvm.nd.array(np.random.randn
+            (M, N).astype("float32"), ctx)
+            C = tvm.nd.array(np.zeros((M*2, N), dtype="float32"), ctx)
+
+            func = module["concat"]
+
+            def k ():
+                print(os.getcwd())
+                func(A, B, C)
+
+            return k
 
     def get_tvm_runner(self) -> TVMRunner:
         return self.ConcatRunner()
@@ -240,9 +259,9 @@ class GatherBenchSpec(BaseBenchSpec):
         self.base_dir = base_dir
         self.symbolic_patches = {}
         self.input_shape = {
+            "K": 64,
             "M": 128,  # Number of elements in the input tensor
             "N": 64,   # Number of indices to gather
-            "K": 64
         }
 
     def get_input_shape(self) -> dict:
@@ -610,8 +629,8 @@ class MulBenchSpec(BaseBenchSpec):
         self.base_dir = base_dir
         self.symbolic_patches = {}
         self.input_shape = {
-            "M": 128,
             "K": 128,
+            "M": 128,
             "N": 128
         }
 
@@ -872,40 +891,28 @@ class BatchNormalizationBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {
-            'inst_T_subtract5_1': 1,
-            'inst_T_subtract5_2': 1,
-            'inst_T_subtract5_3': 1,
-            'inst_T_subtract5_4': 1,
-            'inst_T_subtract5_5': 1,
-            'inst_T_subtract_1':1,
-            'inst_T_subtract_2':1,
-            'inst_T_subtract_3':1,
-            'inst_T_subtract_4':1,
-            'inst_T_subtract_5':1,
-            'inst_T_subtract_6':1,
-            'inst_T_subtract10_1':1,
-            'inst_T_subtract10_2':1,
-            'inst_T_subtract10_3':1,
-            'inst_T_subtract10_4':1,
-            'inst_T_subtract10_5':1,
-            'inst_T_subtract10_6':1,
-            'inst_A_red_1': 1,
-            'inst_A_red_2': 1,
-            'inst_A_red_3': 1,
-            'inst_A_red_4': 1,
-            'inst_A_red_5': 1,
-            'inst_A_red_6': 1,
-            'inst_A_red_7': 1,
+            'null': 0,
             'inst__1': 0,
             'inst__2': 0,
             'inst__3': 0,
-            'inst__4': 0,
-            'null':0
+            'inst_A_red_7': 1,
+            'inst_T_subtract_6': 1,
+            # 'inst_T_subtract5_1': 1,
+            # 'inst_T_subtract5_2': 1,
+            # 'inst_T_subtract5_3': 1,
+            # 'inst_T_subtract5_4': 1,
+            'inst_T_subtract5_5': 1,
+            # 'inst_T_subtract10_1': 1,
+            # 'inst_T_subtract10_2': 1,
+            # 'inst_T_subtract10_3': 1,
+            'inst_T_subtract10_4': 1,
+            # 'inst_T_subtract10_5': 1,
+            # 'inst_T_subtract10_6': 1,
         }
         self.input_shape = {
-            "N": 128,  # Batch size
             "C": 64,   # Channels
             "H": 32,   # Height
+            "N": 128,  # Batch size
             "W": 32    # Width
         }
 
@@ -1076,8 +1083,8 @@ class NonZeroBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {
+            'null': 0,
             'inst_Z_1': 1,
-            'null': 0
         }
         self.input_shape = {
             "M": 128,
@@ -1236,8 +1243,8 @@ class ClipBenchSpec(BaseBenchSpec):
         self.input_shape = {
             "M": 128,
             "N": 128,
+            "max_val": 1.0,
             "min_val": -1.0,
-            "max_val": 1.0
         }
 
     def get_input_shape(self) -> dict:
@@ -1290,7 +1297,7 @@ class LeakyReluBenchSpec(BaseBenchSpec):
         self.input_shape = {
             "M": 128,
             "N": 128,
-            "alpha": 0.1
+            "alpha": 0.1,
         }
 
     def get_input_shape(self) -> dict:
@@ -1340,9 +1347,9 @@ class GemmBenchSpec(BaseBenchSpec):
         self.base_dir = base_dir
         self.symbolic_patches = {}
         self.input_shape = {
+            "K": 128,
             "M": 128,
             "N": 128,
-            "K": 128
         }
 
     def get_input_shape(self) -> dict:
@@ -1396,13 +1403,13 @@ class SoftmaxBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {
+            'null': 0,
+            'inst__1': 0,
             'inst_T_softmax_exp_1': 1,
             'inst_T_softmax_exp_2': 1,
             'inst_T_softmax_maxelem_1': 1,
             'inst_T_softmax_maxelem_2': 1,
             'inst_T_softmax_maxelem_3': 1,
-            'inst__1': 0,
-            'null': 0
         }
         self.input_shape = {
             "M": 128,
@@ -1507,12 +1514,12 @@ class MaxPoolBenchSpec(BaseBenchSpec):
         self.base_dir = base_dir
         self.symbolic_patches = {}
         self.input_shape = {
-            "N": 1,
             "C": 3,
             "H": 224,
+            "N": 1,
             "W": 224,
+            "strides": 2,
             "pool_size": 2,
-            "strides": 2
         }
 
     def get_input_shape(self) -> dict:
@@ -1675,7 +1682,7 @@ class PadBenchSpec(BaseBenchSpec):
         self.input_shape = {
             "M": 128,
             "N": 128,
-            "pad_width": 2
+            "pad_width": 2,
         }
 
     def get_input_shape(self) -> dict:
@@ -1725,20 +1732,20 @@ class InstanceNormalizationBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {
+            'null': 0,
+            'inst__1': 0,
             'inst_A_red_temp.v0_1': 1,
             'inst_A_red_temp.v0_2': 1,
             'inst_A_red_temp.v0_3': 1,
             'inst_A_red_temp.v1_1': 1,
             'inst_A_red_temp.v1_2': 1,
             'inst_A_red_temp.v1_3': 1,
-            'inst__1': 0,
-            'null': 0
         }
         self.input_shape = {
-            "N": 1,
             "C": 3,
             "H": 224,
-            "W": 224
+            "N": 1,
+            "W": 224,
         }
 
     def get_input_shape(self) -> dict:

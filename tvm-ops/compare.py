@@ -52,7 +52,7 @@ def compare_results(instr_result, symb_result):
             })
             continue
 
-        symb_count = parse_bv_value(symb_result[name])
+        symb_count = symb_result[name]
         exact_count = instr_result[name]
 
         if symb_count is None:
