@@ -9,10 +9,10 @@ import pyarrow
 
 theme_set(theme_matplotlib())
 
-DF = pl.read_csv("overhead_results_31.csv")
+DF = pl.read_csv("overhead_results_with_instance.csv")
 
-DF_PLOT = DF.rename({"avg_dynm_exec_ns": "PGO", "avg_symb_exec_ns": "Symbolic"}).unpivot(
-    on=["PGO", "Symbolic"], index=["label", "size"]
+DF_PLOT = DF.rename({"avg_dynm_exec_ns": "PGO", "avg_inst_exec_ns": "Symb"}).unpivot(
+    on=["PGO", "Symb"], index=["label", "size"]
 )
 DF_PLOT = DF_PLOT.with_columns(
     (pl.col("value") / 1_000_000).alias("value")
@@ -28,7 +28,10 @@ PLOT = (
     + scale_x_continuous(trans="log2", labels=lambda vals: [f"{v:.0f}" for v in vals])
     + scale_y_log10(labels=lambda vals: [rf"$10^{{{int(round(math.log10(v)))}}}$" for v in vals])
     + labs(y="Execution Time (ms)", linetype="Method", shape="Method")
-    + theme(axis_text_x=element_text(rotation=90, hjust=1))
+    + theme(
+        axis_text_x=element_text(rotation=90, hjust=1),
+        figure_size=(8, 5.2)
+    )
 )
 
-PLOT.save("all-exec.pdf")
+PLOT.save("all-exec.jpg")
