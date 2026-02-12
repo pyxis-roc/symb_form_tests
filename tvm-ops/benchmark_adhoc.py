@@ -2363,12 +2363,13 @@ class HardmaxBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
-        self.symbolic_patches = {}
+        self.symbolic_patches = {
+            "inst_data_red_temp.v0_1" : 1,
+            "null": 0
+        }
         self.input_shape = {
             "M": 128,
             "N": 128,
-            "inst_data_red_temp.v0_1" : 1,
-            "null": 0
         }
 
     def get_input_shape(self) -> dict:
@@ -2496,7 +2497,58 @@ class LSTMBenchSpec(BaseBenchSpec):
     def __init__(self, base_dir: str):
         super().__init__()
         self.base_dir = base_dir
-        self.symbolic_patches = {}
+        self.symbolic_patches = {
+            "null": 0,
+            # temporary memory allocation
+            "inst_lstm_gate_x_0_36": 1,
+            "inst_lstm_gate_x_1_37": 1,
+            "inst_lstm_gate_x_2_38": 1,
+            "inst_lstm_gate_x_3_39": 1,
+            "inst_lstm_gate_x_4_40": 1,
+            "inst_lstm_gate_x_5_41": 1,
+            "inst_lstm_gate_x_6_42": 1,
+            "inst_lstm_gate_x_7_43": 1,
+            "inst_lstm_gate_x_8_44": 1,
+            "inst_lstm_gate_x_9_45": 1,
+
+            "inst_T_dynamic_strided_slice33_34": 1,
+            "inst_T_dynamic_strided_slice38_33": 1,
+            "inst_T_dynamic_strided_slice43_32": 1,
+            "inst_T_dynamic_strided_slice48_31": 1,
+            "inst_T_dynamic_strided_slice53_30": 1,
+            "inst_T_dynamic_strided_slice58_29": 1,
+            "inst_T_dynamic_strided_slice63_28": 1,
+            "inst_T_dynamic_strided_slice68_27": 1,
+            "inst_T_dynamic_strided_slice73_26": 1,
+            "inst_T_dynamic_strided_slice78_25": 1,
+            "inst_T_dynamic_strided_slice83_24": 1,
+            "inst_T_dynamic_strided_slice88_23": 1,
+            "inst_T_dynamic_strided_slice_35": 1,
+
+            "inst__1": 1,
+            "inst__2": 1,
+            "inst__3": 1,
+            "inst__4": 1,
+            "inst__5": 1,
+            "inst__6": 1,
+            "inst__7": 1,
+            "inst__8": 1,
+            "inst__9": 1,
+            "inst__10": 1,
+            "inst__11": 1,
+            "inst__12": 1,
+            "inst__13": 1,
+            "inst__14": 1,
+            "inst__15": 1,
+            "inst__16": 1,
+            "inst__17": 1,
+            "inst__18": 1,
+            "inst__19": 1,
+            "inst__20": 1,
+            "inst__21": 1,
+            "inst__22": 1,
+
+        }
         self.input_shape = {
             "seq_len": 10,
             "batch_size": 32,
@@ -2508,15 +2560,14 @@ class LSTMBenchSpec(BaseBenchSpec):
         return self.input_shape
 
     def generate_kernel(self):
-        """Generate an LSTM (Long Short-Term Memory) kernel using TVM's built-in lstm (TVM 0.21.0).
-        
-        Implementation: tvm.topi.nn.lstm for sequence modeling with memory cells.
+        """Generate an LSTM (Long Short-Term Memory) kernel using unrolled TE compute (TVM 0.21.0).
+
+        Implementation: Unrolled time steps with gate matmuls and topi activations.
         Semantics: Processes sequential input through LSTM gates (input, forget, cell, output).
         Core Operations: Matrix multiplications for gates + element-wise sigmoid/tanh activations.
         Output: Hidden states (seq_len, batch_size, hidden_dim) and cell states (seq_len, batch_size, hidden_dim).
-        TVM Built-in: Optimized LSTM implementation using TE scan for sequential processing.
         """
-        seq_len = tvm.te.var("seq_len")
+        seq_len = self.input_shape.get("seq_len", 10)
         batch_size = tvm.te.var("batch_size")
         in_dim = tvm.te.var("in_dim")
         hidden_dim = 256  # Use concrete value to satisfy TVM's divisibility check
@@ -2528,14 +2579,101 @@ class LSTMBenchSpec(BaseBenchSpec):
         Bi = tvm.te.placeholder((1024,), "float32", name="Bi")
         Bh = tvm.te.placeholder((1024,), "float32", name="Bh")
         
-        # Use TVM's built-in LSTM (returns hidden and cell states)
-        h_states, c_states = tvm.topi.nn.lstm(
-            Xs, Wi, Wh, Bi, Bh,
-            h_init=None,  # Zero initialization
-            c_init=None,  # Zero initialization
-            weight_layout="IFGO"  # Input, Forget, Cell(Gate), Output
+        gate_dim = 4 * hidden_dim
+
+        def gate_slice_2d(tensor, offset):
+            return tvm.topi.strided_slice(
+                tensor,
+                begin=[0, offset],
+                end=[batch_size, offset + hidden_dim],
+                strides=[1, 1],
+            )
+
+        h_list = []
+        c_list = []
+
+        k_in0 = tvm.te.reduce_axis((0, in_dim), name="k_in_0")
+        gate_x0 = tvm.te.compute(
+            (batch_size, gate_dim),
+            lambda b, g: tvm.te.sum(Xs[0, b, k_in0] * Wi[g, k_in0], axis=k_in0),
+            name="lstm_gate_x_0",
         )
-        
+        gates0 = tvm.te.compute(
+            (batch_size, gate_dim),
+            lambda b, g: gate_x0[b, g] + Bi[g] + Bh[g], # type: ignore
+            name="lstm_gates_0",
+        )
+
+        i0 = tvm.topi.sigmoid(gate_slice_2d(gates0, 0))
+        f0 = tvm.topi.sigmoid(gate_slice_2d(gates0, hidden_dim))
+        g0 = tvm.topi.tanh(gate_slice_2d(gates0, 2 * hidden_dim))
+        o0 = tvm.topi.sigmoid(gate_slice_2d(gates0, 3 * hidden_dim))
+
+        c0 = tvm.te.compute(
+            (batch_size, hidden_dim),
+            lambda b, h: f0[b, h] * 0.0 + i0[b, h] * g0[b, h],
+            name="lstm_c_0",
+        )
+        c0_tanh = tvm.topi.tanh(c0)
+        h0 = tvm.te.compute(
+            (batch_size, hidden_dim),
+            lambda b, h: o0[b, h] * c0_tanh[b, h],
+            name="lstm_h_0",
+        )
+
+        h_list.append(h0)
+        c_list.append(c0)
+
+        for t in range(1, seq_len):
+            k_in_t = tvm.te.reduce_axis((0, in_dim), name=f"k_in_{t}")
+            gate_x_t = tvm.te.compute(
+                (batch_size, gate_dim),
+                lambda b, g: tvm.te.sum(Xs[t, b, k_in_t] * Wi[g, k_in_t], axis=k_in_t),
+                name=f"lstm_gate_x_{t}",
+            )
+
+            k_h_t = tvm.te.reduce_axis((0, hidden_dim), name=f"k_h_{t}")
+            gate_h_t = tvm.te.compute(
+                (batch_size, gate_dim),
+                lambda b, g: tvm.te.sum(h_list[t - 1][b, k_h_t] * Wh[g, k_h_t], axis=k_h_t),
+                name=f"lstm_gate_h_{t}",
+            )
+
+            gates_t = tvm.te.compute(
+                (batch_size, gate_dim),
+                lambda b, g: gate_x_t[b, g] + gate_h_t[b, g] + Bi[g] + Bh[g], # type: ignore
+                name=f"lstm_gates_{t}",
+            )
+
+            i_t = tvm.topi.sigmoid(gate_slice_2d(gates_t, 0))
+            f_t = tvm.topi.sigmoid(gate_slice_2d(gates_t, hidden_dim))
+            g_t = tvm.topi.tanh(gate_slice_2d(gates_t, 2 * hidden_dim))
+            o_t = tvm.topi.sigmoid(gate_slice_2d(gates_t, 3 * hidden_dim))
+
+            c_t = tvm.te.compute(
+                (batch_size, hidden_dim),
+                lambda b, h: f_t[b, h] * c_list[t - 1][b, h] + i_t[b, h] * g_t[b, h],
+                name=f"lstm_c_{t}",
+            )
+            c_tanh = tvm.topi.tanh(c_t)
+            h_t = tvm.te.compute(
+                (batch_size, hidden_dim),
+                lambda b, h: o_t[b, h] * c_tanh[b, h],
+                name=f"lstm_h_{t}",
+            )
+
+            h_list.append(h_t)
+            c_list.append(c_t)
+
+        h_states = tvm.topi.concatenate(
+            [tvm.topi.expand_dims(h, axis=0) for h in h_list],
+            axis=0,
+        )
+        c_states = tvm.topi.concatenate(
+            [tvm.topi.expand_dims(c, axis=0) for c in c_list],
+            axis=0,
+        )
+
         te_func = tvm.te.create_prim_func([Xs, Wi, Wh, Bi, Bh, h_states, c_states]).with_attr({"global_symbol": "lstm"})
         IRmod = tvm.IRModule({"lstm": te_func})
         IRmod = self.apply_optimizations(IRmod)

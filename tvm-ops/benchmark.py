@@ -25,7 +25,14 @@ def get_exact_count(spec:BenchSpec, debug=False):
     kernel_base = os.path.splitext(os.path.basename(kernel_path))[0]
     so_name = f"{kernel_base}-instr.so"
     try:
-        subprocess.run(['instrGen', kernel_path, so_name], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        stderr_redirect = subprocess.PIPE if debug else subprocess.DEVNULL
+        stdout_redirect = subprocess.PIPE if debug else subprocess.DEVNULL
+        result = subprocess.run(['instrGen', kernel_path, so_name], check=True, stdout=stdout_redirect, stderr=stderr_redirect, text=True)
+        if debug and (result.stderr or result.stdout):
+            if result.stdout:
+                print(f"[benchmark][{spec.get_name()}] instrGen stdout: {result.stdout}", flush=True)
+            if result.stderr:
+                print(f"[benchmark][{spec.get_name()}] instrGen stderr: {result.stderr}", flush=True)
     except subprocess.CalledProcessError as e:
         os.chdir(cwd)
         raise RuntimeError(f"instrGen failed for {spec.get_name()}: {e}")
@@ -49,12 +56,16 @@ def get_exact_count(spec:BenchSpec, debug=False):
             instr_results_path = outfile.name
 
             try:
-                subprocess.run(
+                stderr_redirect = subprocess.PIPE if debug else subprocess.DEVNULL
+                result = subprocess.run(
                     ["getBBCounts", kernel_path, profraw_file],
                     stdout=outfile,
-                    stderr=subprocess.DEVNULL,
+                    stderr=stderr_redirect,
                     check=True,
+                    text=True,
                 )
+                if debug and result.stderr:
+                    print(f"[benchmark][{spec.get_name()}] getBBCounts stderr: {result.stderr}", flush=True)
             except subprocess.CalledProcessError as e:
                 os.chdir(cwd)
                 raise RuntimeError(f"getBBCounts failed for {spec.get_name()}: {e}")
@@ -99,6 +110,11 @@ def get_symb_count(spec:BenchSpec, debug=False):
             capture_output=True,
             text=True,
         )
+        if debug and (result.stderr or result.stdout):
+            if result.stdout:
+                print(f"[benchmark][{spec.get_name()}] symb-viewer stdout: {result.stdout}", flush=True)
+            if result.stderr:
+                print(f"[benchmark][{spec.get_name()}] symb-viewer stderr: {result.stderr}", flush=True)
     except subprocess.CalledProcessError as e:
         os.chdir(cwd)
         if debug:
@@ -136,17 +152,28 @@ def get_instance_count(spec:BenchSpec, debug=False):
         if debug:
             print(f"[benchmark][{spec.get_name()}] Generating instance.ll...", flush=True)
         with open(instance_path, "w") as f:
-            subprocess.run(
+            stderr_redirect = subprocess.PIPE if debug else subprocess.DEVNULL
+            result = subprocess.run(
                 ['symb-viewer', 'instance', kernel_path, func_name],
                 stdout=f,
-                stderr=subprocess.DEVNULL,
+                stderr=stderr_redirect,
                 check=True,
+                text=True,
             )
+            if debug and result.stderr:
+                print(f"[benchmark][{spec.get_name()}] symb-viewer instance stderr: {result.stderr}", flush=True)
 
         if debug:
             print(f"[benchmark][{spec.get_name()}] Compiling instance.ll...", flush=True)
         # Compile instance.ll
-        subprocess.run(['clang++', '-O0', '-w', instance_path], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        stderr_redirect = subprocess.PIPE if debug else subprocess.DEVNULL
+        stdout_redirect = subprocess.PIPE if debug else subprocess.DEVNULL
+        result = subprocess.run(['clang++', '-O0', '-w', instance_path], check=True, stdout=stdout_redirect, stderr=stderr_redirect, text=True)
+        if debug and (result.stderr or result.stdout):
+            if result.stdout:
+                print(f"[benchmark][{spec.get_name()}] clang++ stdout: {result.stdout}", flush=True)
+            if result.stderr:
+                print(f"[benchmark][{spec.get_name()}] clang++ stderr: {result.stderr}", flush=True)
 
         # Prepare input arguments (sorted by length then alphabet)
         input_args = {**input_shape, **spec.get_symbolic_patches()}
@@ -158,13 +185,16 @@ def get_instance_count(spec:BenchSpec, debug=False):
             print(f"[benchmark][{spec.get_name()}] Arg names: {' '.join(named_args)}", flush=True)
 
         # Run the compiled instance
+        stderr_redirect = subprocess.PIPE if debug else subprocess.DEVNULL
         result = subprocess.run(
             ['./a.out'] + args,
             stdout=subprocess.PIPE,
-            stderr=subprocess.DEVNULL,
+            stderr=stderr_redirect,
             text=True,
             check=True
         )
+        if debug and result.stderr:
+            print(f"[benchmark][{spec.get_name()}] a.out stderr: {result.stderr}", flush=True)
 
         if debug:
             print(f"[benchmark][{spec.get_name()}] Parsing instance output...", flush=True)
@@ -343,54 +373,54 @@ if __name__ == '__main__':
     from benchmark_adhoc import *
 
     for bench_cls in [
-        ConvBenchSpec,
-        MatmulBenchSpec,
-        ConcatBenchSpec,
-        GatherBenchSpec,
-        ReshapeBenchSpec,
-        ShapeBenchSpec,
-        SqueezeBenchSpec,
-        UnsqueezeBenchSpec,
-        AddBenchSpec,
-        CastBenchSpec,
-        MulBenchSpec,
-        ReluBenchSpec,
-        SubBenchSpec,
-        TransposeBenchSpec,
-        SliceBenchSpec,
-        BatchNormalizationBenchSpec,
-        DivBenchSpec,
-        SumBenchSpec,
-        NonZeroBenchSpec,
-        PowBenchSpec,
-        SqrtBenchSpec,
-        ClipBenchSpec,
-        LeakyReluBenchSpec,
-        GemmBenchSpec,
-        SoftmaxBenchSpec,
-        TanhBenchSpec,
-        MaxPoolBenchSpec,
-        ExpBenchSpec,
-        LogBenchSpec,
-        PadBenchSpec,
-        InstanceNormalizationBenchSpec,
+        # ConvBenchSpec,
+        # MatmulBenchSpec,
+        # ConcatBenchSpec,
+        # GatherBenchSpec,
+        # ReshapeBenchSpec,
+        # ShapeBenchSpec,
+        # SqueezeBenchSpec,
+        # UnsqueezeBenchSpec,
+        # AddBenchSpec,
+        # CastBenchSpec,
+        # MulBenchSpec,
+        # ReluBenchSpec,
+        # SubBenchSpec,
+        # TransposeBenchSpec,
+        # SliceBenchSpec,
+        # BatchNormalizationBenchSpec,
+        # DivBenchSpec,
+        # SumBenchSpec,
+        # NonZeroBenchSpec,
+        # PowBenchSpec,
+        # SqrtBenchSpec,
+        # ClipBenchSpec,
+        # LeakyReluBenchSpec,
+        # GemmBenchSpec,
+        # SoftmaxBenchSpec,
+        # TanhBenchSpec,
+        # MaxPoolBenchSpec,
+        # ExpBenchSpec,
+        # LogBenchSpec,
+        # PadBenchSpec,
+        # InstanceNormalizationBenchSpec,
 
-        ResizeBenchSpec,
-        UpsampleBenchSpec,
-        TopKBenchSpec,
-        NonMaxSuppressionBenchSpec,
-        RoiAlignBenchSpec,
-        ScatterBenchSpec,
-        CompressBenchSpec,
-        CumSumBenchSpec,
-        HardmaxBenchSpec,
-        CategoryMapperBenchSpec,
+        # ResizeBenchSpec,
+        # UpsampleBenchSpec,
+        # TopKBenchSpec,
+        # NonMaxSuppressionBenchSpec,
+        # RoiAlignBenchSpec,
+        # ScatterBenchSpec,
+        # CompressBenchSpec,
+        # CumSumBenchSpec,
+        # HardmaxBenchSpec,
+        # CategoryMapperBenchSpec,
 
-        # LSTMBenchSpec,
+        LSTMBenchSpec,
 
     ]:
         try:
-            benchmark_all(bench_cls(base_dir=BASE_DIR), debug=False)
+            benchmark_all(bench_cls(base_dir=BASE_DIR), debug=True)
             # get_basic_block_numbers(bench_cls(base_dir=BASE_DIR), debug=False)
         except Exception as e:
             print(f"[FAILED] {bench_cls.__name__} failed", flush=True)
