@@ -1,5 +1,0 @@
-Program:
-Inputs: %T_shape %N %M 
-  BasicBlock: %entry
-  Count: 1
-  Graph is null
