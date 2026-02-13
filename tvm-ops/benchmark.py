@@ -411,12 +411,12 @@ if __name__ == '__main__':
         # NonMaxSuppressionBenchSpec,
         # RoiAlignBenchSpec,
         # ScatterBenchSpec,
-        # CompressBenchSpec,
+        CompressBenchSpec,
         # CumSumBenchSpec,
         # HardmaxBenchSpec,
         # CategoryMapperBenchSpec,
 
-        LSTMBenchSpec,
+        # LSTMBenchSpec,
 
     ]:
         try:

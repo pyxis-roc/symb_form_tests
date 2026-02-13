@@ -2173,33 +2173,78 @@ class ScatterBenchSpec(BaseBenchSpec):
         self.base_dir = base_dir
         self.symbolic_patches = {}
         self.input_shape = {
-            "M": 128,
             "N": 128,
-            "K": 64
+            "K": 16
         }
 
     def get_input_shape(self) -> dict:
         return self.input_shape
 
     def generate_kernel(self):
-        """Generate a scatter kernel using TVM's built-in addition (TVM 0.21.0 compatible).
+        """Generate a Scatter kernel using TE compute (TVM 0.21.0 compatible).
         
-        Implementation: Uses tvm.topi.add for element-wise addition.
-        Semantics: result[i, j] = data[i, j] + updates[i, j]
-        Scatter Core: Scatter/Gather updates elements at specified indices.
-        Since dynamic indexing (arbitrary scatter indices) requires specialized syntax
-        in TVM 0.21.0, we approximate via scatter-add semantics: each update value
-        adds to the corresponding data element (accumulation pattern).
-        This matches scatter-add semantics used in sparse tensor operations and
-        gradient accumulation during backpropagation.
+        ONNX Scatter Semantics:
+        - data: base tensor from which we start (shape: N)
+        - indices: 1D tensor of indices where to scatter updates (shape: K)
+        - updates: 1D tensor of values to scatter at specified indices (shape: K)
+        - output: copy of data with elements at indices replaced by updates (shape: N)
+        
+        Implementation: For each output position i:
+          output[i] = updates[j] where indices[j] == i
+          else output[i] = data[i]
+        Pure arithmetic implementation without tir.Select.
         """
-        M = tvm.te.var("M")
-        N = tvm.te.var("N")
-        data = tvm.te.placeholder((M, N), "float32", name="data")
-        updates = tvm.te.placeholder((M, N), "float32", name="updates")
-        # Scatter via addition (accumulation pattern)
-        output = tvm.topi.add(data, updates)
-        te_func = tvm.te.create_prim_func([data, updates, output]).with_attr({"global_symbol": "scatter"})
+        # Fixed sizes (not dynamic variables)
+        N_size = 128
+        K_size = 16
+        
+        # Inputs with fixed shapes
+        data = tvm.te.placeholder((N_size,), "float32", name="data")
+        indices = tvm.te.placeholder((K_size,), "int32", name="indices")
+        updates = tvm.te.placeholder((K_size,), "float32", name="updates")
+        
+        k_scatter = tvm.te.reduce_axis((0, K_size), "k_scatter")
+        
+        # Compute matched update value for each output position
+        # Uses arithmetic: indicator = 1 - min(1, |indices[k] - i|)
+        def compute_eq_indicator(idx_val, target_i):
+            """Arithmetic equality indicator: 1 when equal, 0 otherwise"""
+            diff = tvm.tir.Cast("int32", target_i) - idx_val
+            # Use abs via: max(x, -x)
+            abs_diff = tvm.tir.Max(diff, -diff)
+            # Convert to float for arithmetic
+            abs_diff_f = tvm.tir.Cast("float32", abs_diff)
+            # 1 - min(1, abs_diff) gives 1 when abs_diff==0, 0 when abs_diff >= 1
+            indicator = tvm.tir.const(1.0, "float32") - tvm.tir.Min(abs_diff_f, tvm.tir.const(1.0, "float32"))
+            return indicator
+        
+        update_value = tvm.te.compute(
+            (N_size,),
+            lambda i: tvm.te.sum(
+                updates[k_scatter] * compute_eq_indicator(indices[k_scatter], i),
+                axis=k_scatter
+            ),
+            name="update_value"
+        )
+        
+        has_update = tvm.te.compute(
+            (N_size,),
+            lambda i: tvm.te.sum(
+                compute_eq_indicator(indices[k_scatter], i),
+                axis=k_scatter
+            ),
+            name="has_update"
+        )
+        
+        # Blend: output = data * (1 - has_update) + update_value * has_update
+        output = tvm.te.compute(
+            (N_size,),
+            lambda i: data[i] * (tvm.tir.const(1.0, "float32") - has_update[i]) + 
+                      update_value[i] * has_update[i],
+            name="output"
+        )
+        
+        te_func = tvm.te.create_prim_func([data, indices, updates, output]).with_attr({"global_symbol": "scatter"})
         IRmod = tvm.IRModule({"scatter": te_func})
         IRmod = self.apply_optimizations(IRmod)
         runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
@@ -2210,20 +2255,29 @@ class ScatterBenchSpec(BaseBenchSpec):
     class ScatterRunner(TVMRunner):
         def run(self, module, input: dict):
             ctx = tvm.cpu(0)
-            M = input.get("M", 128)
-            N = input.get("N", 128)
+            N = 128
+            K = 16
 
-            data_np = np.random.randn(M, N).astype("float32")
-            updates_np = np.random.randn(M, N).astype("float32")
-            output_np = np.zeros((M, N), dtype="float32")
+            # data: base tensor initialized with zeros
+            data_np = np.zeros((N,), dtype="float32")
+            
+            # indices: positions to scatter to (should be 0 <= indices[i] < N)
+            indices_np = np.random.choice(N, size=K, replace=False).astype("int32")
+            
+            # updates: values to scatter at those indices
+            updates_np = np.arange(K, dtype="float32") + 1.0
+            
+            # Output tensor (same shape as data)
+            output_np = np.zeros((N,), dtype="float32")
 
             data = tvm.nd.array(data_np, ctx)
+            indices = tvm.nd.array(indices_np, ctx)
             updates = tvm.nd.array(updates_np, ctx)
             output = tvm.nd.array(output_np, ctx)
 
             func = module["scatter"]
             start = perf_counter_ns()
-            func(data, updates, output)
+            func(data, indices, updates, output)
             end = perf_counter_ns()
             return end - start
 
@@ -2524,29 +2578,30 @@ class LSTMBenchSpec(BaseBenchSpec):
             "inst_T_dynamic_strided_slice83_24": 1,
             "inst_T_dynamic_strided_slice88_23": 1,
             "inst_T_dynamic_strided_slice_35": 1,
-
-            "inst__1": 1,
-            "inst__2": 1,
-            "inst__3": 1,
-            "inst__4": 1,
-            "inst__5": 1,
-            "inst__6": 1,
-            "inst__7": 1,
-            "inst__8": 1,
-            "inst__9": 1,
-            "inst__10": 1,
-            "inst__11": 1,
-            "inst__12": 1,
-            "inst__13": 1,
-            "inst__14": 1,
-            "inst__15": 1,
-            "inst__16": 1,
-            "inst__17": 1,
-            "inst__18": 1,
-            "inst__19": 1,
-            "inst__20": 1,
-            "inst__21": 1,
-            "inst__22": 1,
+            
+            # deallocation of temporary memory
+            "inst__1": 0,
+            "inst__2": 0,
+            "inst__3": 0,
+            "inst__4": 0,
+            "inst__5": 0,
+            "inst__6": 0,
+            "inst__7": 0,
+            "inst__8": 0,
+            "inst__9": 0,
+            "inst__10": 0,
+            "inst__11": 0,
+            "inst__12": 0,
+            "inst__13": 0,
+            "inst__14": 0,
+            "inst__15": 0,
+            "inst__16": 0,
+            "inst__17": 0,
+            "inst__18": 0,
+            "inst__19": 0,
+            "inst__20": 0,
+            "inst__21": 0,
+            "inst__22": 0,
 
         }
         self.input_shape = {
