@@ -3,7 +3,7 @@ from collections import defaultdict
 from statistics import median
 
 # Filepath for the CSV file
-csv_filepath = "/home/jingyu/projects/playground/symb_form_tests/tvm-ops/overhead_results_31.csv"
+csv_filepath = "/home/jingyu/projects/playground/symb_form_tests/tvm-ops/overhead_results_with_instance.csv"
 
 # Dictionary to store speed-up ranges for each operator
 speedup_ranges = defaultdict(list)
@@ -14,7 +14,7 @@ with open(csv_filepath, mode='r') as csvfile:
     for row in reader:
         operator = row['label']
         dynm_exec_time = float(row['avg_dynm_exec_ns'])
-        symb_exec_time = float(row['avg_symb_exec_ns'])
+        symb_exec_time = float(row['avg_inst_exec_ns'])
         speedup = dynm_exec_time / symb_exec_time
         speedup_ranges[operator].append(speedup)
 

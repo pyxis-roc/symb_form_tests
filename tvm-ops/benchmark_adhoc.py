@@ -2772,3 +2772,1060 @@ class LSTMBenchSpec(BaseBenchSpec):
 
     def get_name(self):
         return "lstm"
+
+
+class _UnaryElementwiseBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str, name: str, op, out_dtype: str = "float32", in_dtype: str = "float32"):
+        super().__init__()
+        self.base_dir = base_dir
+        self._name = name
+        self._op = op
+        self._in_dtype = in_dtype
+        self._out_dtype = out_dtype
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 128}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), self._in_dtype, name="A")
+        C = self._op(A)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": self._name})
+        IRmod = tvm.IRModule({self._name: te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class _Runner(TVMRunner):
+        def __init__(self, name: str, in_dtype: str, out_dtype: str):
+            self._name = name
+            self._in_dtype = in_dtype
+            self._out_dtype = out_dtype
+
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+            if self._in_dtype == "bool":
+                A_np = (np.random.randn(M, N) > 0).astype("bool")
+            elif self._in_dtype.startswith("int"):
+                A_np = np.random.randint(0, 16, size=(M, N)).astype(self._in_dtype)
+            else:
+                A_np = np.random.randn(M, N).astype(self._in_dtype)
+
+            C_np = np.zeros((M, N), dtype=self._out_dtype)
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+            func = module[self._name]
+            start = perf_counter_ns()
+            func(A, C)
+            end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self._Runner(self._name, self._in_dtype, self._out_dtype)
+
+    def get_name(self):
+        return self._name
+
+
+class _BinaryElementwiseBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str, name: str, op, out_dtype: str = "float32", in_dtype: str = "float32"):
+        super().__init__()
+        self.base_dir = base_dir
+        self._name = name
+        self._op = op
+        self._in_dtype = in_dtype
+        self._out_dtype = out_dtype
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 128}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), self._in_dtype, name="A")
+        B = tvm.te.placeholder((M, N), self._in_dtype, name="B")
+        C = self._op(A, B)
+        te_func = tvm.te.create_prim_func([A, B, C]).with_attr({"global_symbol": self._name})
+        IRmod = tvm.IRModule({self._name: te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class _Runner(TVMRunner):
+        def __init__(self, name: str, in_dtype: str, out_dtype: str):
+            self._name = name
+            self._in_dtype = in_dtype
+            self._out_dtype = out_dtype
+
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+            if self._in_dtype == "bool":
+                A_np = (np.random.randn(M, N) > 0).astype("bool")
+                B_np = (np.random.randn(M, N) > 0).astype("bool")
+            else:
+                A_np = np.random.randn(M, N).astype(self._in_dtype)
+                B_np = np.random.randn(M, N).astype(self._in_dtype)
+
+            C_np = np.zeros((M, N), dtype=self._out_dtype)
+            A = tvm.nd.array(A_np, ctx)
+            B = tvm.nd.array(B_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+            func = module[self._name]
+            start = perf_counter_ns()
+            func(A, B, C)
+            end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self._Runner(self._name, self._in_dtype, self._out_dtype)
+
+    def get_name(self):
+        return self._name
+
+
+class AbsBenchSpec(_UnaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "abs", lambda A: tvm.topi.abs(A))
+
+
+class FlattenBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 128}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.reshape(A, (M * N,))
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "flatten"})
+        IRmod = tvm.IRModule({"flatten": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class FlattenRunner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M * N,), dtype="float32")
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+            func = module["flatten"]
+            start = perf_counter_ns(); func(A, C); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.FlattenRunner()
+
+    def get_name(self):
+        return "flatten"
+
+
+class NegBenchSpec(_UnaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "neg", lambda A: tvm.topi.negative(A))
+
+
+class ReduceMinBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 128}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.min(A, axis=1)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "reduce_min"})
+        IRmod = tvm.IRModule({"reduce_min": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M,), dtype="float32")
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+            start = perf_counter_ns(); module["reduce_min"](A, C); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "reduce_min"
+
+
+class AndBenchSpec(_BinaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "and", lambda A, B: tvm.topi.logical_and(A, B), out_dtype="bool", in_dtype="bool")
+
+
+class FloorBenchSpec(_UnaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "floor", lambda A: tvm.topi.floor(A))
+
+
+class ReduceSumBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 128}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.sum(A, axis=1)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "reduce_sum"})
+        IRmod = tvm.IRModule({"reduce_sum": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M,), dtype="float32")
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+            start = perf_counter_ns(); module["reduce_sum"](A, C); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "reduce_sum"
+
+
+class ArgMaxBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 128}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.argmax(A, axis=1, keepdims=False)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "argmax"})
+        IRmod = tvm.IRModule({"argmax": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M,), dtype="int32")
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+            start = perf_counter_ns(); module["argmax"](A, C); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "argmax"
+
+
+class GlobalAveragePoolBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"N": 1, "C": 64, "H": 32, "W": 32}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        N = tvm.te.var("N")
+        C = tvm.te.var("C")
+        H = tvm.te.var("H")
+        W = tvm.te.var("W")
+        A = tvm.te.placeholder((N, C, H, W), "float32", name="A")
+        rh = tvm.te.reduce_axis((0, H), name="rh")
+        rw = tvm.te.reduce_axis((0, W), name="rw")
+        sum_nc = tvm.te.compute(
+            (N, C),
+            lambda n, c: tvm.te.sum(A[n, c, rh, rw], axis=[rh, rw]),
+            name="global_avg_pool_sum_nc",
+        )
+        avg_nc = tvm.topi.divide(sum_nc, tvm.tir.Cast("float32", H * W))
+        C_out = tvm.topi.expand_dims(tvm.topi.expand_dims(avg_nc, axis=2), axis=3)
+        te_func = tvm.te.create_prim_func([A, C_out]).with_attr({"global_symbol": "global_average_pool"})
+        IRmod = tvm.IRModule({"global_average_pool": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            N = input.get("N", 1); C = input.get("C", 64); H = input.get("H", 32); W = input.get("W", 32)
+            A_np = np.random.randn(N, C, H, W).astype("float32")
+            O_np = np.zeros((N, C, 1, 1), dtype="float32")
+            A = tvm.nd.array(A_np, ctx); O = tvm.nd.array(O_np, ctx)
+            start = perf_counter_ns(); module["global_average_pool"](A, O); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "global_average_pool"
+
+
+class NotBenchSpec(_UnaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "not", lambda A: tvm.topi.logical_not(A), out_dtype="bool", in_dtype="bool")
+
+
+class AveragePoolBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"N": 1, "C": 3, "H": 224, "W": 224}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        N = tvm.te.var("N")
+        C = tvm.te.var("C")
+        H = tvm.te.var("H")
+        W = tvm.te.var("W")
+        A = tvm.te.placeholder((N, C, H, W), "float32", name="A")
+        O = tvm.topi.nn.pool2d(A, (2, 2), (2, 2), (1, 1), (0, 0, 0, 0), pool_type="avg", layout="NCHW")
+        te_func = tvm.te.create_prim_func([A, O]).with_attr({"global_symbol": "average_pool"})
+        IRmod = tvm.IRModule({"average_pool": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            N = input.get("N", 1); C = input.get("C", 3); H = input.get("H", 224); W = input.get("W", 224)
+            A_np = np.random.randn(N, C, H, W).astype("float32")
+            O_np = np.zeros((N, C, H // 2, W // 2), dtype="float32")
+            A = tvm.nd.array(A_np, ctx); O = tvm.nd.array(O_np, ctx)
+            start = perf_counter_ns(); module["average_pool"](A, O); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "average_pool"
+
+
+class GreaterBenchSpec(_BinaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "greater", lambda A, B: tvm.topi.greater(A, B), out_dtype="bool")
+
+
+class PReluBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 128}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        alpha = tvm.te.placeholder((N,), "float32", name="alpha")
+        O = tvm.te.compute((M, N), lambda i, j: tvm.tir.Select(A[i, j] >= 0.0, A[i, j], A[i, j] * alpha[j]), name="prelu")
+        te_func = tvm.te.create_prim_func([A, alpha, O]).with_attr({"global_symbol": "prelu"})
+        IRmod = tvm.IRModule({"prelu": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128); N = input.get("N", 128)
+            A_np = np.random.randn(M, N).astype("float32")
+            alpha_np = np.random.randn(N).astype("float32")
+            O_np = np.zeros((M, N), dtype="float32")
+            A = tvm.nd.array(A_np, ctx); alpha = tvm.nd.array(alpha_np, ctx); O = tvm.nd.array(O_np, ctx)
+            start = perf_counter_ns(); module["prelu"](A, alpha, O); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "prelu"
+
+
+class RangeBenchSpec(BaseBenchSpec):
+    # ONNX Range(start, limit, delta) -> output[i] = start + i * delta
+    # for i in range(ceil((limit - start) / delta)).
+    # We benchmark with fixed N=128 output elements (start=0, delta=1),
+    # exposing start and delta as runtime scalar inputs to reflect the operator
+    # interface (limit determines N at runtime; for static TVM shapes we fix N=128).
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        N = 128  # fixed output length: ceil((limit-start)/delta) = ceil((128-0)/1)
+        start = tvm.te.placeholder((), "float32", name="start")
+        delta = tvm.te.placeholder((), "float32", name="delta")
+        # output[i] = start + i * delta
+        O = tvm.te.compute(
+            (N,),
+            lambda i: start[()] + tvm.tir.Cast("float32", i) * delta[()],
+            name="range_out",
+        )
+        te_func = tvm.te.create_prim_func([start, delta, O]).with_attr({"global_symbol": "range"})
+        IRmod = tvm.IRModule({"range": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            N = 128
+            start_nd = tvm.nd.array(np.array(0.0, dtype="float32"), ctx)
+            delta_nd = tvm.nd.array(np.array(1.0, dtype="float32"), ctx)
+            O_np = np.zeros((N,), dtype="float32")
+            O_nd = tvm.nd.array(O_np, ctx)
+            t0 = perf_counter_ns(); module["range"](start_nd, delta_nd, O_nd); t1 = perf_counter_ns()
+            return t1 - t0
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "range"
+
+
+class RoundBenchSpec(_UnaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "round", lambda A: tvm.topi.round(A))
+
+
+class CeilBenchSpec(_UnaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "ceil", lambda A: tvm.topi.ceil(A))
+
+
+class IdentityBenchSpec(_UnaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "identity", lambda A: tvm.topi.identity(A))
+
+
+class ReciprocalBenchSpec(_UnaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "reciprocal", lambda A: tvm.topi.divide(tvm.tir.const(1.0, "float32"), A))
+
+
+class ScanBenchSpec(BaseBenchSpec):
+    # ONNX Scan: general recurrent loop with a body subgraph that carries N state
+    # variables across iterations and accumulates per-step outputs.
+    # Canonical body modelled here (1 state, 1 scan input, 1 scan output):
+    #   body(h_prev, x_t) -> (h_t, y_t)  where  h_t = h_prev + x_t
+    # This captures the defining semantics: sequential state dependency and
+    # scan-output accumulation across seq_len iterations.
+    # Inputs:  h_init (batch, hidden) — initial state
+    #          X      (seq_len, batch, hidden) — scan input sequence
+    # Outputs: scan_out (seq_len, batch, hidden) — concatenated per-step h values
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        seq_len = 4
+        batch = 8
+        hidden = 64
+        h_init = tvm.te.placeholder((batch, hidden), "float32", name="h_init")
+        X = tvm.te.placeholder((seq_len, batch, hidden), "float32", name="X")
+        # Unroll the Scan body: h[t] = h[t-1] + x[t]
+        # Each step slice of X is extracted, added to previous state, and accumulated.
+        x_slices = [
+            tvm.topi.reshape(
+                tvm.topi.strided_slice(X, [t, 0, 0], [t + 1, batch, hidden]),
+                [batch, hidden],
+            )
+            for t in range(seq_len)
+        ]
+        h_steps = []
+        h_prev = h_init
+        for t in range(seq_len):
+            h_t = tvm.topi.add(h_prev, x_slices[t])  # body: h_t = h_{t-1} + x_t
+            h_steps.append(tvm.topi.expand_dims(h_t, axis=0))
+            h_prev = h_t
+        # Concatenate per-step outputs along the sequence axis (scan output)
+        scan_out = tvm.topi.concatenate(h_steps, axis=0)
+        te_func = tvm.te.create_prim_func([h_init, X, scan_out]).with_attr({"global_symbol": "scan"})
+        IRmod = tvm.IRModule({"scan": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            seq_len = 4
+            batch = 8
+            hidden = 64
+            h_init_np = np.random.randn(batch, hidden).astype("float32")
+            X_np = np.random.randn(seq_len, batch, hidden).astype("float32")
+            scan_out_np = np.zeros((seq_len, batch, hidden), dtype="float32")
+            h_init_nd = tvm.nd.array(h_init_np, ctx)
+            X_nd = tvm.nd.array(X_np, ctx)
+            scan_out_nd = tvm.nd.array(scan_out_np, ctx)
+            t0 = perf_counter_ns()
+            module["scan"](h_init_nd, X_nd, scan_out_nd)
+            t1 = perf_counter_ns()
+            return t1 - t0
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "scan"
+
+
+class LRNBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"N": 1, "C": 16, "H": 32, "W": 32}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        N = tvm.te.var("N")
+        C = tvm.te.var("C")
+        H = tvm.te.var("H")
+        W = tvm.te.var("W")
+        A = tvm.te.placeholder((N, C, H, W), "float32", name="A")
+        O = tvm.topi.nn.lrn(A, size=5, axis=1, alpha=0.0001, beta=0.75, bias=1)
+        te_func = tvm.te.create_prim_func([A, O]).with_attr({"global_symbol": "lrn"})
+        IRmod = tvm.IRModule({"lrn": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            N = input.get("N", 1); C = input.get("C", 16); H = input.get("H", 32); W = input.get("W", 32)
+            A_np = np.random.randn(N, C, H, W).astype("float32")
+            O_np = np.zeros((N, C, H, W), dtype="float32")
+            A = tvm.nd.array(A_np, ctx); O = tvm.nd.array(O_np, ctx)
+            start = perf_counter_ns(); module["lrn"](A, O); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "lrn"
+
+
+class ReduceMaxBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 128}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.max(A, axis=1)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "reduce_max"})
+        IRmod = tvm.IRModule({"reduce_max": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M,), dtype="float32")
+            A = tvm.nd.array(A_np, ctx)
+            C = tvm.nd.array(C_np, ctx)
+            start = perf_counter_ns(); module["reduce_max"](A, C); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "reduce_max"
+
+
+class ConstantBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 128}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        O = tvm.te.compute((M, N), lambda _, __: tvm.tir.const(1.0, "float32"), name="constant")
+        te_func = tvm.te.create_prim_func([O]).with_attr({"global_symbol": "constant"})
+        IRmod = tvm.IRModule({"constant": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128); N = input.get("N", 128)
+            O_np = np.zeros((M, N), dtype="float32")
+            O = tvm.nd.array(O_np, ctx)
+            start = perf_counter_ns(); module["constant"](O); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "constant"
+
+
+class ReduceMeanBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 128}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        S = tvm.topi.sum(A, axis=1)
+        C = tvm.te.compute((M,), lambda i: S[i] / tvm.tir.Cast("float32", N), name="reduce_mean")
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "reduce_mean"})
+        IRmod = tvm.IRModule({"reduce_mean": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128); N = input.get("N", 128)
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M,), dtype="float32")
+            A = tvm.nd.array(A_np, ctx); C = tvm.nd.array(C_np, ctx)
+            start = perf_counter_ns(); module["reduce_mean"](A, C); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "reduce_mean"
+
+
+class SigmoidBenchSpec(_UnaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "sigmoid", lambda A: tvm.topi.sigmoid(A))
+
+
+class ConstantOfShapeBenchSpec(_UnaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "constant_of_shape", lambda A: tvm.topi.full_like(A, tvm.tir.const(1.0, "float32")))
+
+
+class LessBenchSpec(_BinaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "less", lambda A, B: tvm.topi.less(A, B), out_dtype="bool")
+
+
+class TileBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 64}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.tile(A, (1, 2))
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "tile"})
+        IRmod = tvm.IRModule({"tile": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128); N = input.get("N", 64)
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, N * 2), dtype="float32")
+            A = tvm.nd.array(A_np, ctx); C = tvm.nd.array(C_np, ctx)
+            start = perf_counter_ns(); module["tile"](A, C); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "tile"
+
+
+class SplitBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 128}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        parts = tvm.topi.split(A, 2, axis=1)
+        C = parts[0]
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "split"})
+        IRmod = tvm.IRModule({"split": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128); N = input.get("N", 128)
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, N // 2), dtype="float32")
+            A = tvm.nd.array(A_np, ctx); C = tvm.nd.array(C_np, ctx)
+            start = perf_counter_ns(); module["split"](A, C); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "split"
+
+
+class ConvTransposeBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"N": 1, "CI": 16, "H": 32, "W": 32, "CO": 16}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        N = tvm.te.var("N")
+        CI = tvm.te.var("CI")
+        H = tvm.te.var("H")
+        W = tvm.te.var("W")
+        CO = tvm.te.var("CO")
+        A = tvm.te.placeholder((N, CI, H, W), "float32", name="A")
+        Wt = tvm.te.placeholder((CI, CO, 3, 3), "float32", name="W")
+        C = tvm.topi.nn.conv2d_transpose_nchw(
+            A,
+            Wt,
+            strides=(1, 1),
+            padding=(1, 1),
+            output_padding=(0, 0),
+            out_dtype="float32",
+        )
+        te_func = tvm.te.create_prim_func([A, Wt, C]).with_attr({"global_symbol": "conv_transpose"})
+        IRmod = tvm.IRModule({"conv_transpose": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            N = input.get("N", 1); CI = input.get("CI", 16); H = input.get("H", 32); W = input.get("W", 32); CO = input.get("CO", 16)
+            A_np = np.random.randn(N, CI, H, W).astype("float32")
+            W_np = np.random.randn(CI, CO, 3, 3).astype("float32")
+            C_np = np.zeros((N, CO, H, W), dtype="float32")
+            A = tvm.nd.array(A_np, ctx); Wt = tvm.nd.array(W_np, ctx); C = tvm.nd.array(C_np, ctx)
+            start = perf_counter_ns(); module["conv_transpose"](A, Wt, C); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "conv_transpose"
+
+
+class LessOrEqualBenchSpec(_BinaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "less_or_equal", lambda A, B: tvm.topi.less_equal(A, B), out_dtype="bool")
+
+
+class LoopBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 128}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        data = tvm.te.placeholder((M, N), "float32", name="data")
+        output = tvm.topi.scan.cumsum(data, axis=1, dtype="float32", exclusive=False)
+        te_func = tvm.te.create_prim_func([data, output]).with_attr({"global_symbol": "loop"})
+        IRmod = tvm.IRModule({"loop": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128)
+            N = input.get("N", 128)
+            data_np = np.random.randn(M, N).astype("float32")
+            output_np = np.zeros((M, N), dtype="float32")
+            data = tvm.nd.array(data_np, ctx)
+            output = tvm.nd.array(output_np, ctx)
+            start = perf_counter_ns(); module["loop"](data, output); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "loop"
+
+
+class WhereBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 128}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        cond = tvm.te.placeholder((M, N), "bool", name="cond")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        B = tvm.te.placeholder((M, N), "float32", name="B")
+        C = tvm.topi.where(cond, A, B)
+        te_func = tvm.te.create_prim_func([cond, A, B, C]).with_attr({"global_symbol": "where"})
+        IRmod = tvm.IRModule({"where": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128); N = input.get("N", 128)
+            cond_np = (np.random.randn(M, N) > 0)
+            A_np = np.random.randn(M, N).astype("float32")
+            B_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, N), dtype="float32")
+            cond = tvm.nd.array(cond_np, ctx); A = tvm.nd.array(A_np, ctx); B = tvm.nd.array(B_np, ctx); C = tvm.nd.array(C_np, ctx)
+            start = perf_counter_ns(); module["where"](cond, A, B, C); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "where"
+
+
+class ExpandBenchSpec(BaseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__()
+        self.base_dir = base_dir
+        self.symbolic_patches = {}
+        self.input_shape = {"M": 128, "N": 128}
+
+    def get_input_shape(self) -> dict:
+        return self.input_shape
+
+    def generate_kernel(self):
+        M = tvm.te.var("M")
+        N = tvm.te.var("N")
+        A = tvm.te.placeholder((M, N), "float32", name="A")
+        C = tvm.topi.expand_dims(A, axis=1, num_newaxis=1)
+        te_func = tvm.te.create_prim_func([A, C]).with_attr({"global_symbol": "expand"})
+        IRmod = tvm.IRModule({"expand": te_func})
+        IRmod = self.apply_optimizations(IRmod)
+        runtime_mod = tvm.tir.build(IRmod, target=tvm.target.Target("llvm"))
+        os.makedirs(self.get_directory(), exist_ok=True)
+        with open(self.get_kernel_llvm_path(), 'w') as f:
+            f.write(runtime_mod.get_source())
+
+    class Runner(TVMRunner):
+        def run(self, module, input: dict):
+            ctx = tvm.cpu(0)
+            M = input.get("M", 128); N = input.get("N", 128)
+            A_np = np.random.randn(M, N).astype("float32")
+            C_np = np.zeros((M, 1, N), dtype="float32")
+            A = tvm.nd.array(A_np, ctx); C = tvm.nd.array(C_np, ctx)
+            start = perf_counter_ns(); module["expand"](A, C); end = perf_counter_ns()
+            return end - start
+
+    def get_tvm_runner(self) -> TVMRunner:
+        return self.Runner()
+
+    def get_name(self):
+        return "expand"
+
+
+class DropoutBenchSpec(_UnaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "dropout", lambda A: tvm.topi.multiply(A, tvm.tir.const(0.9, "float32")))
+
+
+class MaxBenchSpec(_BinaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "max", lambda A, B: tvm.topi.maximum(A, B))
+
+
+class ErfBenchSpec(_UnaryElementwiseBenchSpec):
+    def __init__(self, base_dir: str):
+        super().__init__(base_dir, "erf", lambda A: tvm.topi.erf(A))
