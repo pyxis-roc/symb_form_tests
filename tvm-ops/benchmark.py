@@ -177,7 +177,7 @@ def get_instance_count(spec:BenchSpec, debug=False):
 
         # Prepare input arguments (sorted by length then alphabet)
         input_args = {**input_shape, **spec.get_symbolic_patches()}
-        sorted_keys = sorted(input_args.keys(), key=lambda x: (len(x), x))
+        sorted_keys = sorted(input_args.keys())
         args = [str(input_args[k]) for k in sorted_keys]
         if debug:
             named_args = [f"{k}={input_args[k]}" for k in sorted_keys]
@@ -367,102 +367,36 @@ import argparse
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Benchmark TVM operations.')
     parser.add_argument('--base_dir', type=str, default='./all_ops', help='Base directory for benchmarks')
+    parser.add_argument('--op', type=str, default=None,
+                        help='Run a single op by class name (e.g. ConvBenchSpec or conv). Debug defaults to True.')
+    parser.add_argument('--debug', dest='debug', action='store_true', default=None,
+                        help='Force debug mode on')
+    parser.add_argument('--no-debug', dest='debug', action='store_false',
+                        help='Force debug mode off')
     args = parser.parse_args()
     BASE_DIR = args.base_dir
 
     from benchmark_adhoc import *
+    import inspect
 
-    for bench_cls in [
-        # ConvBenchSpec,
-        # MatmulBenchSpec,
-        # ConcatBenchSpec,
-        # GatherBenchSpec,
-        # ReshapeBenchSpec,
-        # ShapeBenchSpec,
-        # SqueezeBenchSpec,
-        # UnsqueezeBenchSpec,
-        # AddBenchSpec,
-        # CastBenchSpec,
-        # MulBenchSpec,
-        # ReluBenchSpec,
-        # SubBenchSpec,
-        # TransposeBenchSpec,
-        # SliceBenchSpec,
-        # BatchNormalizationBenchSpec,
-        # DivBenchSpec,
-        # SumBenchSpec,
-        # NonZeroBenchSpec,
-        # PowBenchSpec,
-        # SqrtBenchSpec,
-        # ClipBenchSpec,
-        # LeakyReluBenchSpec,
-        # GemmBenchSpec,
-        # SoftmaxBenchSpec,
-        # TanhBenchSpec,
-        # MaxPoolBenchSpec,
-        # ExpBenchSpec,
-        # LogBenchSpec,
-        # PadBenchSpec,
-        # InstanceNormalizationBenchSpec,
-
-        AbsBenchSpec,
-        FlattenBenchSpec,
-        NegBenchSpec,
-        ReduceMinBenchSpec,
-        AndBenchSpec,
-        FloorBenchSpec,
-        NonMaxSuppressionBenchSpec,
-        ReduceSumBenchSpec,
-        ArgMaxBenchSpec,
-        GlobalAveragePoolBenchSpec,
-        NotBenchSpec,
-        ResizeBenchSpec,
-        AveragePoolBenchSpec,
-        GreaterBenchSpec,
-        PReluBenchSpec,
-        RoiAlignBenchSpec,
-        CategoryMapperBenchSpec,
-        HardmaxBenchSpec,
-        RangeBenchSpec,
-        RoundBenchSpec,
-        CeilBenchSpec,
-        IdentityBenchSpec,
-        ReciprocalBenchSpec,
-        ScanBenchSpec,
-        CompressBenchSpec,
-        LRNBenchSpec,
-        ReduceMaxBenchSpec,
-        ScatterBenchSpec,
-        ConstantBenchSpec,
-        LSTMBenchSpec,
-        ReduceMeanBenchSpec,
-        SigmoidBenchSpec,
-        ConstantOfShapeBenchSpec,
-        LessBenchSpec,
-        TileBenchSpec,
-        SplitBenchSpec,
-        ConvTransposeBenchSpec,
-        LessOrEqualBenchSpec,
-        TopKBenchSpec,
-        UpsampleBenchSpec,
-        CumSumBenchSpec,
-        LoopBenchSpec,
-        WhereBenchSpec,
-        ExpandBenchSpec,
-        DropoutBenchSpec,
-        MaxBenchSpec,
-        ErfBenchSpec,
-
-    ]:
-        try:
-            benchmark_all(bench_cls(base_dir=BASE_DIR), debug=False)
-            # get_basic_block_numbers(bench_cls(base_dir=BASE_DIR), debug=False)
-        except Exception as e:
-            print(f"[FAILED] {bench_cls.__name__} failed", flush=True)
-    exit()
-
-    from benchmark_simple import SpecCollection
-
-    specs = SpecCollection(BASE_DIR).get_specs()
-    for spec in specs:
-        benchmark(spec, debug=False)
+    if args.op is not None:
+        # Single-op mode: debug defaults to True unless explicitly overridden
+        debug = args.debug if args.debug is not None else True
+        op_key = args.op.lower().replace('benchspec', '')
+        candidates = {
+            name.lower().replace('benchspec', ''): cls
+            for name, cls in inspect.getmembers(sys.modules[__name__], inspect.isclass)
+            if issubclass(cls, BenchSpec) and cls is not BenchSpec
+        }
+        if op_key not in candidates:
+            print(f"Unknown op '{args.op}'. Available: {', '.join(sorted(candidates))}")
+            exit(1)
+        bench_cls = candidates[op_key]
+        benchmark_all(bench_cls(base_dir=BASE_DIR), debug=debug) #type: ignore
+    else:
+        # All-ops regression mode: debug defaults to False unless explicitly overridden
+        debug = args.debug if args.debug is not None else False
+        from benchmark_simple import SpecCollection
+        specs = SpecCollection(BASE_DIR).get_specs()
+        for spec in specs:
+            benchmark_all(spec, debug=debug)

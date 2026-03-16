@@ -49,9 +49,9 @@ class ConvBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {
-            "null": 0,
-            'inst_smax_1': 226,
-            "inst_pad_temp_2": 1,
+            # "null": 0,
+            # 'inst_smax_1': 226,
+            # "inst_pad_temp_2": 1,
         }
         self.input_shape = {
             "H": 224,  # Input height
@@ -186,7 +186,7 @@ class ConcatBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {
-            "inst_smax_1": 128 * 2
+            # "inst_smax_1": 128 * 2
         }
         self.input_shape = {
             "M": 128,
@@ -891,21 +891,21 @@ class BatchNormalizationBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {
-            'null': 0,
-            'inst__1': 0,
-            'inst__2': 0,
-            'inst__3': 0,
-            'inst_A_red_7': 1,
-            'inst_T_subtract_6': 1,
+            # 'null': 0,
+            # 'inst__1': 0,
+            # 'inst__2': 0,
+            # 'inst__3': 0,
+            # 'inst_A_red_7': 1,
+            # 'inst_T_subtract_6': 1,
             # 'inst_T_subtract5_1': 1,
             # 'inst_T_subtract5_2': 1,
             # 'inst_T_subtract5_3': 1,
             # 'inst_T_subtract5_4': 1,
-            'inst_T_subtract5_5': 1,
+            # 'inst_T_subtract5_5': 1,
             # 'inst_T_subtract10_1': 1,
             # 'inst_T_subtract10_2': 1,
             # 'inst_T_subtract10_3': 1,
-            'inst_T_subtract10_4': 1,
+            # 'inst_T_subtract10_4': 1,
             # 'inst_T_subtract10_5': 1,
             # 'inst_T_subtract10_6': 1,
         }
@@ -1083,8 +1083,8 @@ class NonZeroBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {
-            'null': 0,
-            'inst_Z_1': 1,
+            # 'null': 0,
+            # 'inst_Z_1': 1,
         }
         self.input_shape = {
             "M": 128,
@@ -1403,13 +1403,13 @@ class SoftmaxBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {
-            'null': 0,
-            'inst__1': 0,
-            'inst_T_softmax_exp_1': 1,
-            'inst_T_softmax_exp_2': 1,
-            'inst_T_softmax_maxelem_1': 1,
-            'inst_T_softmax_maxelem_2': 1,
-            'inst_T_softmax_maxelem_3': 1,
+            # 'null': 0,
+            # 'inst__1': 0,
+            # 'inst_T_softmax_exp_1': 1,
+            # 'inst_T_softmax_exp_2': 1,
+            # 'inst_T_softmax_maxelem_1': 1,
+            # 'inst_T_softmax_maxelem_2': 1,
+            # 'inst_T_softmax_maxelem_3': 1,
         }
         self.input_shape = {
             "M": 128,
@@ -1677,7 +1677,7 @@ class PadBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {
-            'inst_smax_1': 132,
+            # 'inst_smax_1': 132,
         }
         self.input_shape = {
             "M": 128,
@@ -1732,14 +1732,14 @@ class InstanceNormalizationBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {
-            'null': 0,
-            'inst__1': 0,
-            'inst_A_red_temp.v0_1': 1,
-            'inst_A_red_temp.v0_2': 1,
-            'inst_A_red_temp.v0_3': 1,
-            'inst_A_red_temp.v1_1': 1,
-            'inst_A_red_temp.v1_2': 1,
-            'inst_A_red_temp.v1_3': 1,
+            # 'null': 0,
+            # 'inst__1': 0,
+            # 'inst_A_red_temp.v0_1': 1,
+            # 'inst_A_red_temp.v0_2': 1,
+            # 'inst_A_red_temp.v0_3': 1,
+            # 'inst_A_red_temp.v1_1': 1,
+            # 'inst_A_red_temp.v1_2': 1,
+            # 'inst_A_red_temp.v1_3': 1,
         }
         self.input_shape = {
             "C": 3,
@@ -1941,9 +1941,9 @@ class TopKBenchSpec(BaseBenchSpec):
             "M": 128,
             "N": 1000,
             "K": 10,
-            "inst__1": 0,
-            "inst__2": 0,
-            "null": 0,
+            # "inst__1": 0,
+            # "inst__2": 0,
+            # "null": 0,
         }
 
     def get_input_shape(self) -> dict:
@@ -2418,8 +2418,8 @@ class HardmaxBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {
-            "inst_data_red_temp.v0_1" : 1,
-            "null": 0
+            # "inst_data_red_temp.v0_1" : 1,
+            # "null": 0
         }
         self.input_shape = {
             "M": 128,
@@ -2552,63 +2552,63 @@ class LSTMBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {
-            "null": 0,
+            # "null": 0,
             # temporary memory allocation
-            "inst_lstm_gate_x_0_36": 1,
-            "inst_lstm_gate_x_1_37": 1,
-            "inst_lstm_gate_x_2_38": 1,
-            "inst_lstm_gate_x_3_39": 1,
-            "inst_lstm_gate_x_4_40": 1,
-            "inst_lstm_gate_x_5_41": 1,
-            "inst_lstm_gate_x_6_42": 1,
-            "inst_lstm_gate_x_7_43": 1,
-            "inst_lstm_gate_x_8_44": 1,
-            "inst_lstm_gate_x_9_45": 1,
+            # "inst_lstm_gate_x_0_36": 1,
+            # "inst_lstm_gate_x_1_37": 1,
+            # "inst_lstm_gate_x_2_38": 1,
+            # "inst_lstm_gate_x_3_39": 1,
+            # "inst_lstm_gate_x_4_40": 1,
+            # "inst_lstm_gate_x_5_41": 1,
+            # "inst_lstm_gate_x_6_42": 1,
+            # "inst_lstm_gate_x_7_43": 1,
+            # "inst_lstm_gate_x_8_44": 1,
+            # "inst_lstm_gate_x_9_45": 1,
 
-            "inst_T_dynamic_strided_slice33_34": 1,
-            "inst_T_dynamic_strided_slice38_33": 1,
-            "inst_T_dynamic_strided_slice43_32": 1,
-            "inst_T_dynamic_strided_slice48_31": 1,
-            "inst_T_dynamic_strided_slice53_30": 1,
-            "inst_T_dynamic_strided_slice58_29": 1,
-            "inst_T_dynamic_strided_slice63_28": 1,
-            "inst_T_dynamic_strided_slice68_27": 1,
-            "inst_T_dynamic_strided_slice73_26": 1,
-            "inst_T_dynamic_strided_slice78_25": 1,
-            "inst_T_dynamic_strided_slice83_24": 1,
-            "inst_T_dynamic_strided_slice88_23": 1,
-            "inst_T_dynamic_strided_slice_35": 1,
+            # "inst_T_dynamic_strided_slice33_34": 1,
+            # "inst_T_dynamic_strided_slice38_33": 1,
+            # "inst_T_dynamic_strided_slice43_32": 1,
+            # "inst_T_dynamic_strided_slice48_31": 1,
+            # "inst_T_dynamic_strided_slice53_30": 1,
+            # "inst_T_dynamic_strided_slice58_29": 1,
+            # "inst_T_dynamic_strided_slice63_28": 1,
+            # "inst_T_dynamic_strided_slice68_27": 1,
+            # "inst_T_dynamic_strided_slice73_26": 1,
+            # "inst_T_dynamic_strided_slice78_25": 1,
+            # "inst_T_dynamic_strided_slice83_24": 1,
+            # "inst_T_dynamic_strided_slice88_23": 1,
+            # "inst_T_dynamic_strided_slice_35": 1,
             
             # deallocation of temporary memory
-            "inst__1": 0,
-            "inst__2": 0,
-            "inst__3": 0,
-            "inst__4": 0,
-            "inst__5": 0,
-            "inst__6": 0,
-            "inst__7": 0,
-            "inst__8": 0,
-            "inst__9": 0,
-            "inst__10": 0,
-            "inst__11": 0,
-            "inst__12": 0,
-            "inst__13": 0,
-            "inst__14": 0,
-            "inst__15": 0,
-            "inst__16": 0,
-            "inst__17": 0,
-            "inst__18": 0,
-            "inst__19": 0,
-            "inst__20": 0,
-            "inst__21": 0,
-            "inst__22": 0,
+            # "inst__1": 0,
+            # "inst__2": 0,
+            # "inst__3": 0,
+            # "inst__4": 0,
+            # "inst__5": 0,
+            # "inst__6": 0,
+            # "inst__7": 0,
+            # "inst__8": 0,
+            # "inst__9": 0,
+            # "inst__10": 0,
+            # "inst__11": 0,
+            # "inst__12": 0,
+            # "inst__13": 0,
+            # "inst__14": 0,
+            # "inst__15": 0,
+            # "inst__16": 0,
+            # "inst__17": 0,
+            # "inst__18": 0,
+            # "inst__19": 0,
+            # "inst__20": 0,
+            # "inst__21": 0,
+            # "inst__22": 0,
 
         }
         self.input_shape = {
-            "seq_len": 10,
             "batch_size": 32,
+            # "hidden_dim": 256,
             "in_dim": 128,
-            "hidden_dim": 256
+            # "seq_len": 10,
         }
 
     def get_input_shape(self) -> dict:
@@ -2622,7 +2622,7 @@ class LSTMBenchSpec(BaseBenchSpec):
         Core Operations: Matrix multiplications for gates + element-wise sigmoid/tanh activations.
         Output: Hidden states (seq_len, batch_size, hidden_dim) and cell states (seq_len, batch_size, hidden_dim).
         """
-        seq_len = self.input_shape.get("seq_len", 10)
+        seq_len = 10
         batch_size = tvm.te.var("batch_size")
         in_dim = tvm.te.var("in_dim")
         hidden_dim = 256  # Use concrete value to satisfy TVM's divisibility check
