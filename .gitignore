@@ -10,3 +10,4 @@ legacy/
 optimized/
 .venv/
 *.profraw
+.venv-1

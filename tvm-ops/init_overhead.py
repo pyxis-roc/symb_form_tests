@@ -1,9 +1,26 @@
+import argparse
 import matplotlib.pyplot as plt
 import csv
 import numpy as np
 from matplotlib.lines import Line2D
 import pandas as pd
-from plotnine import ggplot, aes, geom_bar, theme_minimal, labs, scale_fill_manual, theme, element_text, geom_line, scale_y_continuous, geom_text
+from plotnine import ggplot, aes, geom_bar, theme_minimal, labs, scale_fill_manual, theme, element_text, geom_line, scale_y_continuous, scale_y_log10, geom_text
+
+EXCLUDED_LABELS = {
+    "constant",
+    "scatter",
+    "scan",
+    "range",
+    "loop",
+    "cumsum",
+    "topk",
+}
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("results_file", nargs="?", default="overhead_results_31.csv")
+parser.add_argument("characterize_file", nargs="?", default="characterize.csv")
+args = parser.parse_args()
 
 def read_op_data(filename, op_label):
     sizes = []
@@ -65,7 +82,7 @@ def plot_all_init_times(op_labels, avg_dynm_inits, avg_symb_inits, spec_bb_count
             legend_position=(0.95, 0.9),
             legend_justification='right'
         )
-        + scale_y_continuous(
+        + scale_y_log10(
             name='Avg Analysis Time (ms)',
         )
     )
@@ -97,6 +114,7 @@ def plot_all_init_times_matplotlib(op_labels, avg_dynm_inits, avg_symb_inits, sp
     ax1.set_xlabel('Operation')
     ax1.set_ylabel('Avg Analysis Time (ms)', color='black')
     ax1.set_title('Avg Analysis Time: PGO vs Symbolic')
+    ax1.set_yscale('log')
     ax1.set_xticks(x)
     ax1.set_xticklabels(operations, rotation=30, ha='right')
     ax1.legend(loc='upper left')
@@ -118,13 +136,13 @@ def plot_all_init_times_matplotlib(op_labels, avg_dynm_inits, avg_symb_inits, sp
     plt.show()
 
 # Example usage for "add"
-filename = "overhead_results_31.csv"
+filename = args.results_file
 # Get all unique op labels from the CSV
 with open(filename, "r") as f:
     reader = csv.DictReader(f)
-    op_labels = sorted(set(row["label"] for row in reader))
+    op_labels = sorted(set(row["label"] for row in reader) - EXCLUDED_LABELS)
 
-with open('characterize.csv', 'r') as f:
+with open(args.characterize_file, 'r') as f:
     reader = csv.DictReader(f)
     spec_bb_counts = {row['name']: int(row['BB']) for row in reader}
 

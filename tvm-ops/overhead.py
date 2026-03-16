@@ -265,14 +265,21 @@ def run_single_case(bench: BenchSpec, case: BenchmarkCase, repeat: int = 3) -> d
     symb_exec_times = []
     inst_exec_times = []
 
-    for _ in range(repeat):
+    for i in range(repeat):
         sleep(1)
-        result = run_benchmark_case(bench, case)
+        try:
+            result = run_benchmark_case(bench, case)
+        except Exception as error:  # noqa: BLE001
+            print(f"  [rep {i + 1}/{repeat} failed] {bench.get_name()} size={case.size}: {error}")
+            continue
         dynm_init_times.append(result.dynm_init_ns)
         dynm_exec_times.append(result.dynm_exec_ns)
         symb_init_times.append(result.symb_init_ns)
         symb_exec_times.append(result.symb_exec_ns)
         inst_exec_times.append(result.inst_exec_ns)
+
+    if not dynm_exec_times:
+        raise RuntimeError(f"All {repeat} repetitions failed for {bench.get_name()} size={case.size}.")
 
     avg_dynm_init_ns, cv_dynm_init = summarize_times(dynm_init_times)
     avg_dynm_exec_ns, cv_dynm_exec = summarize_times(dynm_exec_times)
@@ -418,6 +425,11 @@ def apply_size_to_input_shape(bench: BenchSpec, input_shape: dict[str, int], siz
         input_shape["in_dim"] = size
         return
 
+    if name == "batch_norm":
+        input_shape["H"] = size
+        input_shape["W"] = size
+        return
+
     if keys == {"N"}:
         input_shape["N"] = size
         return
@@ -493,7 +505,11 @@ def run_experiments(
     total_specs = len(specs)
     output_exists = os.path.exists(output_path)
     for index, bench in enumerate(specs, start=1):
-        cases = build_benchmark_cases(bench, mode, custom_sizes)
+        try:
+            cases = build_benchmark_cases(bench, mode, custom_sizes)
+        except Exception as error:  # noqa: BLE001
+            print(f"[{index}/{total_specs}] [failed] could not build cases for {bench.get_name()}: {error}")
+            continue
         print(f"[{index}/{total_specs}] running {bench.get_name()} with {len(cases)} case(s)")
         for case in cases:
             key = case_identity(bench.get_name(), case)

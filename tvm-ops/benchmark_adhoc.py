@@ -910,7 +910,7 @@ class BatchNormalizationBenchSpec(BaseBenchSpec):
             # 'inst_T_subtract10_6': 1,
         }
         self.input_shape = {
-            "C": 64,   # Channels
+            "C": 16,   # Channels
             "H": 32,   # Height
             "N": 128,  # Batch size
             "W": 32    # Width
@@ -943,7 +943,7 @@ class BatchNormalizationBenchSpec(BaseBenchSpec):
         def run(self, module, input: dict):
             ctx = tvm.cpu(0)
             N = input.get("N", 128)
-            C = input.get("C", 64)
+            C = input.get("C", 3)
             H = input.get("H", 32)
             W = input.get("W", 32)
 
@@ -2100,7 +2100,7 @@ class RoiAlignBenchSpec(BaseBenchSpec):
         self.input_shape = {
             "H": 56,
             "W": 56,
-            "C": 256,
+            "C": 3,
             "num_rois": 128
         }
 
@@ -2144,7 +2144,7 @@ class RoiAlignBenchSpec(BaseBenchSpec):
             ctx = tvm.cpu(0)
             H = input.get("H", 56)
             W = input.get("W", 56)
-            C = input.get("C", 256)
+            C = input.get("C", 3)
             num_rois = input.get("num_rois", 128)
 
             data_np = np.random.randn(1, C, H, W).astype("float32")
@@ -3090,7 +3090,7 @@ class GlobalAveragePoolBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-        self.input_shape = {"N": 1, "C": 64, "H": 32, "W": 32}
+        self.input_shape = {"N": 1, "C": 3, "H": 32, "W": 32}
 
     def get_input_shape(self) -> dict:
         return self.input_shape
@@ -3121,7 +3121,7 @@ class GlobalAveragePoolBenchSpec(BaseBenchSpec):
     class Runner(TVMRunner):
         def run(self, module, input: dict):
             ctx = tvm.cpu(0)
-            N = input.get("N", 1); C = input.get("C", 64); H = input.get("H", 32); W = input.get("W", 32)
+            N = input.get("N", 1); C = input.get("C", 3); H = input.get("H", 32); W = input.get("W", 32)
             A_np = np.random.randn(N, C, H, W).astype("float32")
             O_np = np.zeros((N, C, 1, 1), dtype="float32")
             A = tvm.nd.array(A_np, ctx); O = tvm.nd.array(O_np, ctx)
@@ -3379,7 +3379,7 @@ class LRNBenchSpec(BaseBenchSpec):
         super().__init__()
         self.base_dir = base_dir
         self.symbolic_patches = {}
-        self.input_shape = {"N": 1, "C": 16, "H": 32, "W": 32}
+        self.input_shape = {"N": 1, "C": 3, "H": 32, "W": 32}
 
     def get_input_shape(self) -> dict:
         return self.input_shape
@@ -3402,7 +3402,7 @@ class LRNBenchSpec(BaseBenchSpec):
     class Runner(TVMRunner):
         def run(self, module, input: dict):
             ctx = tvm.cpu(0)
-            N = input.get("N", 1); C = input.get("C", 16); H = input.get("H", 32); W = input.get("W", 32)
+            N = input.get("N", 1); C = input.get("C", 3); H = input.get("H", 32); W = input.get("W", 32)
             A_np = np.random.randn(N, C, H, W).astype("float32")
             O_np = np.zeros((N, C, H, W), dtype="float32")
             A = tvm.nd.array(A_np, ctx); O = tvm.nd.array(O_np, ctx)

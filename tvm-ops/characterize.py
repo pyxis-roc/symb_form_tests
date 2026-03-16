@@ -38,7 +38,7 @@ def process_ll_files(base_dir, output_csv):
                 try:
                     # Call symb-viewer and capture output
                     process = subprocess.run(
-                        ["symb-viewer", ll_file_path, f"{base_name}_compute_", "--char", "--quiet"],
+                        ["symb-viewer", "characterize", ll_file_path, f"{base_name}_compute_"],
                         stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE,
                         text=True,
