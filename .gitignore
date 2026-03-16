@@ -8,3 +8,5 @@ all_ops/
 *.pdf
 legacy/
 optimized/
+.venv/
+*.profraw
