@@ -18,8 +18,8 @@ EXCLUDED_LABELS = {
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("results_file", nargs="?", default="overhead_results_31.csv")
-parser.add_argument("characterize_file", nargs="?", default="characterize.csv")
+parser.add_argument("results_file", nargs="?", default="./results/overhead_full_with_instance.csv")
+parser.add_argument("characterize_file", nargs="?", default="./results/characterize.csv")
 args = parser.parse_args()
 
 def read_op_data(filename, op_label):
@@ -40,57 +40,6 @@ def read_op_data(filename, op_label):
     return sizes, dynm_init, dynm_exec, symb_init, symb_exec
 
 
-def plot_all_init_times(op_labels, avg_dynm_inits, avg_symb_inits, spec_bb_counts):
-    # Prepare the data for plotnine
-    data = pd.DataFrame({
-        'Operation': [label.capitalize() for label in op_labels] * 2,
-        'Avg Time (ms)': avg_dynm_inits + avg_symb_inits,
-        'Method': ['PGO'] * len(op_labels) + ['Symbolic'] * len(op_labels),
-        'Basic Blocks': [spec_bb_counts[label] for label in op_labels] * 2
-    })
-
-    # Sort data by basic block numbers
-    data['SortKey'] = data['Basic Blocks']
-    data = data.sort_values(by='SortKey', ascending=False)
-
-    # Create the combined plot
-    plot = (
-        ggplot(data, aes(x='reorder(Operation, SortKey)', y='Avg Time (ms)', fill='Method'))
-        + geom_bar(stat='identity', position='dodge', width=0.7)
-        + geom_line(
-            mapping=aes(x='Operation', y='Basic Blocks', group=1),
-            color='black',
-            size=1
-        )
-        + geom_text(
-            mapping=aes(x='Operation', y='Basic Blocks', label='Basic Blocks'),
-            color='black',
-            size=8,
-            va='bottom'  # Position text slightly above the line
-        )
-        + scale_fill_manual(values=['#1f77b4', '#ff7f0e'])
-        + labs(
-            title='Avg Analysis Time: PGO vs Symbolic (All Ops)',
-            x='Operation',
-            y='Avg Analysis Time (ms)',
-            fill='Method'
-        )
-        + theme_minimal()
-        + theme(
-            axis_text_x=element_text(rotation=30, hjust=1),
-            figure_size=(10, 6),
-            legend_position=(0.95, 0.9),
-            legend_justification='right'
-        )
-        + scale_y_log10(
-            name='Avg Analysis Time (ms)',
-        )
-    )
-
-    # Save and display the plot
-    plot.save("all-init-with-line.pdf")
-    print(plot)
-
 def plot_all_init_times_matplotlib(op_labels, avg_dynm_inits, avg_symb_inits, spec_bb_counts):
     # Prepare data
     data = sorted(
@@ -102,7 +51,7 @@ def plot_all_init_times_matplotlib(op_labels, avg_dynm_inits, avg_symb_inits, sp
     operations = [label.capitalize() for label in operations]
 
     # Create the figure and axis
-    fig, ax1 = plt.subplots(figsize=(10, 6))
+    fig, ax1 = plt.subplots(figsize=(12, 6))
 
     # Bar plot for average times
     bar_width = 0.35
@@ -116,7 +65,7 @@ def plot_all_init_times_matplotlib(op_labels, avg_dynm_inits, avg_symb_inits, sp
     ax1.set_title('Avg Analysis Time: PGO vs Symbolic')
     ax1.set_yscale('log')
     ax1.set_xticks(x)
-    ax1.set_xticklabels(operations, rotation=30, ha='right')
+    ax1.set_xticklabels(operations, rotation=50, ha='right')
     ax1.legend(loc='upper left')
     ax1.tick_params(axis='y', labelcolor='black')
 
@@ -132,7 +81,8 @@ def plot_all_init_times_matplotlib(op_labels, avg_dynm_inits, avg_symb_inits, sp
 
     # Adjust layout and save the plot
     fig.tight_layout()
-    plt.savefig("all-init-with-line-matplotlib.pdf")
+    print("Saving plot to ./figures/all-init-with-line-matplotlib.pdf")
+    plt.savefig("./figures/all-init-with-line-matplotlib.pdf")
     plt.show()
 
 # Example usage for "add"

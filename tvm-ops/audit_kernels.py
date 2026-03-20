@@ -134,7 +134,7 @@ def main():
             print(f"  {op}: {ev}")
 
     # ── Write Markdown report ─────────────────────────────────────────────────
-    report_path = Path(__file__).parent / "kernel_audit_report.md"
+    report_path = Path(__file__).parent / "./results/kernel_audit_report.md"
     with report_path.open("w") as f:
         f.write("# LLVM Kernel Audit Report\n\n")
         f.write(

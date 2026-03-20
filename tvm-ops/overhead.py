@@ -312,6 +312,94 @@ def run_single_case(bench: BenchSpec, case: BenchmarkCase, repeat: int = 3) -> d
     }
 
 
+def build_case_for_size(bench: BenchSpec, size: int) -> BenchmarkCase:
+    input_shape = dict(bench.get_input_shape())
+    symbolic_patches = dict(bench.get_symbolic_patches())
+    case_size = None if benchmark_has_fixed_inputs(bench) else size
+    apply_size_to_input_shape(bench, input_shape, case_size)
+    effective_size = infer_case_size(input_shape)
+    return BenchmarkCase(
+        size=effective_size,
+        input_shape=input_shape,
+        symbolic_patches=symbolic_patches,
+    )
+
+
+def run_symb_init_only_case(bench: BenchSpec, case: BenchmarkCase, repeat: int = 3) -> tuple[int, float]:
+    bench.input_shape = dict(case.input_shape)
+    bench.symbolic_patches = dict(case.symbolic_patches)
+
+    symb_init_times = []
+    for i in range(repeat):
+        sleep(1)
+        try:
+            symb_init_ns, _ = get_symb_overhead(bench)
+        except Exception as error:  # noqa: BLE001
+            print(f"  [rep {i + 1}/{repeat} failed] {bench.get_name()} size={case.size}: {error}")
+            continue
+        symb_init_times.append(symb_init_ns)
+
+    if not symb_init_times:
+        raise RuntimeError(f"All {repeat} symbolic-init repetitions failed for {bench.get_name()} size={case.size}.")
+
+    return summarize_times(symb_init_times)
+
+
+def update_symb_init_only(
+    base_dir: str,
+    output_path: str,
+    repeat: int,
+    selected_ops: list[str] | None,
+):
+    if not os.path.exists(output_path):
+        raise FileNotFoundError(f"Results CSV not found: {output_path}")
+
+    all_specs = get_all_specs(base_dir)
+    specs = filter_specs(all_specs, selected_ops)
+    spec_by_name = {spec.get_name(): spec for spec in specs}
+
+    with open(output_path, "r", newline="") as csvfile:
+        reader = csv.DictReader(csvfile)
+        fieldnames = reader.fieldnames
+        if not fieldnames:
+            raise ValueError(f"CSV has no header: {output_path}")
+        rows = list(reader)
+
+    total_rows = len(rows)
+    updated_count = 0
+
+    for index, row in enumerate(rows, start=1):
+        label = row.get("label", "")
+        size_text = row.get("size", "")
+        if label not in spec_by_name:
+            continue
+        if not size_text:
+            print(f"[{index}/{total_rows}] [skip] {label} missing size in CSV")
+            continue
+
+        bench = spec_by_name[label]
+        try:
+            case = build_case_for_size(bench, int(size_text))
+            avg_symb_init_ns, cv_symb_init = run_symb_init_only_case(bench, case, repeat=repeat)
+            row["avg_symb_init_ns"] = str(avg_symb_init_ns)
+            row["cv_symb_init"] = str(cv_symb_init)
+            updated_count += 1
+            print(
+                f"[{index}/{total_rows}] [updated] {label} size={row.get('size')} "
+                f"avg_symb_init_ns={avg_symb_init_ns}, cv_symb_init={cv_symb_init:.2%}"
+            )
+        except Exception as error:  # noqa: BLE001
+            print(f"[{index}/{total_rows}] [failed] {label} size={size_text}: {error}")
+            continue
+
+    with open(output_path, "w", newline="") as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+    print(f"[done] updated symbolic init time for {updated_count} row(s) in {output_path}")
+
+
 def ensure_parent_dir(path: str):
     parent = os.path.dirname(path)
     if parent:
@@ -569,6 +657,20 @@ def build_parser() -> argparse.ArgumentParser:
         help="One or more scalar size values to apply to each selected benchmark",
     )
 
+    symb_init_parser = subparsers.add_parser(
+        "symb-init-only",
+        help="Temporary helper: recompute and update only symbolic init timing in an existing CSV",
+    )
+    symb_init_parser.add_argument("--base-dir", type=str, default="./optimized", help="Directory for generated kernels")
+    symb_init_parser.add_argument("--repeat", type=int, default=3, help="Repeat count for each benchmark case")
+    symb_init_parser.add_argument("--ops", nargs="*", help="Optional benchmark filters by op name or class name")
+    symb_init_parser.add_argument(
+        "--output",
+        type=str,
+        default=DEFAULT_OUTPUT_FILES["full"],
+        help="CSV file whose avg_symb_init_ns/cv_symb_init columns will be updated in-place",
+    )
+
     return parser
 
 
@@ -578,6 +680,15 @@ def main():
 
     if args.command == "list":
         list_benchmarks(get_all_specs(args.base_dir))
+        return
+
+    if args.command == "symb-init-only":
+        update_symb_init_only(
+            base_dir=args.base_dir,
+            output_path=args.output,
+            repeat=args.repeat,
+            selected_ops=args.ops,
+        )
         return
 
     mode = "custom" if args.command == "run" else args.command

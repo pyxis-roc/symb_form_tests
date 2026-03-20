@@ -3,7 +3,7 @@ from collections import defaultdict
 from statistics import median
 
 # Filepath for the CSV file
-csv_filepath = "/home/jingyu/projects/playground/symb_form_tests/tvm-ops/overhead_results_with_instance.csv"
+csv_filepath = "/home/jingyu/projects/playground/symb_form_tests/tvm-ops/results/overhead_full_with_instance.csv"
 
 # Dictionary to store speed-up ranges for each operator
 speedup_ranges = defaultdict(list)
