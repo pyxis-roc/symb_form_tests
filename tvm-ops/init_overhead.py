@@ -1,4 +1,7 @@
 import argparse
+from pathlib import Path
+import matplotlib
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import csv
 import numpy as np
@@ -18,8 +21,23 @@ EXCLUDED_LABELS = {
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument("results_file", nargs="?", default="./results/overhead_full_with_instance.csv")
-parser.add_argument("characterize_file", nargs="?", default="./results/characterize.csv")
+parser.add_argument(
+    "results_file",
+    nargs="?",
+    default="./results/overhead_full_with_instance.csv",
+    help="CSV file containing overhead experiment results.",
+)
+parser.add_argument(
+    "characterize_file",
+    nargs="?",
+    default="./results/characterize.csv",
+    help="CSV file containing characterization data.",
+)
+parser.add_argument(
+    "--output",
+    default="./figures/all-init-with-line-matplotlib.pdf",
+    help="Output path for the initialization overhead figure.",
+)
 args = parser.parse_args()
 
 def read_op_data(filename, op_label):
@@ -81,9 +99,11 @@ def plot_all_init_times_matplotlib(op_labels, avg_dynm_inits, avg_symb_inits, sp
 
     # Adjust layout and save the plot
     fig.tight_layout()
-    print("Saving plot to ./figures/all-init-with-line-matplotlib.pdf")
-    plt.savefig("./figures/all-init-with-line-matplotlib.pdf")
-    plt.show()
+    output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    print(f"Saving plot to {output_path}")
+    plt.savefig(output_path)
+    plt.close(fig)
 
 # Example usage for "add"
 filename = args.results_file

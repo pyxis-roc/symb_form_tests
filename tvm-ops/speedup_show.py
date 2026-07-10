@@ -59,6 +59,7 @@ def main() -> None:
     )
 
     output_path = Path(args.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     plot.save(str(output_path))
 
 

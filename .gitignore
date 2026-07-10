@@ -6,6 +6,7 @@ pyrightconfig.json
 all_ops/
 10_new_ops/
 *.pdf
+figures/
 legacy/
 optimized/
 .venv/

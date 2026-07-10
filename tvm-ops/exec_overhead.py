@@ -37,8 +37,22 @@ EXCLUDED_LABELS = {
 }
 
 parser = argparse.ArgumentParser()
-parser.add_argument("file", nargs="?", default="./results/overhead_full_with_instance.csv")
-parser.add_argument("--characterize-file", default=None)
+parser.add_argument(
+    "file",
+    nargs="?",
+    default="./results/overhead_full_with_instance.csv",
+    help="CSV file containing overhead experiment results.",
+)
+parser.add_argument(
+    "--characterize-file",
+    default=None,
+    help="CSV file containing characterization data. Defaults to characterize.csv next to the input file.",
+)
+parser.add_argument(
+    "--output-base",
+    default="./figures/all-exec",
+    help="Output path prefix for execution overhead figures.",
+)
 args = parser.parse_args()
 
 DF = pl.read_csv(args.file)
@@ -112,7 +126,8 @@ figure_label_groups = [
     sorted_labels[:FIRST_FIGURE_LABELS],
     sorted_labels[FIRST_FIGURE_LABELS:] + missing_labels,
 ]
-output_base = Path("./figures/all-exec")
+output_base = Path(args.output_base)
+output_base.parent.mkdir(parents=True, exist_ok=True)
 
 for index, label_chunk in enumerate(figure_label_groups, start=1):
     if not label_chunk:
