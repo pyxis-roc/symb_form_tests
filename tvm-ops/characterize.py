@@ -3,6 +3,17 @@ import subprocess
 import csv
 import re
 
+
+# These metrics classify unsupported semantic patterns found during benchmark
+# validation; they are not structural metrics reported by symb-viewer.
+DATA_DEPENDENT_BLOCKS = {
+    "prelu": 3,
+    "topk": 2,
+}
+NON_AFFINE_CONDITIONS = {
+    "pad": 1,
+}
+
 def parse_symb_viewer_output(output):
     """
     Parse the output of symb-viewer into a dictionary.
@@ -46,8 +57,10 @@ def process_ll_files(base_dir, output_csv):
                     )
                     parsed_output = parse_symb_viewer_output(process.stdout)
                     parsed_output['name'] = base_name
-                    # Add the AC field with conditional values
+                    # Add benchmark classifications used by Table 2.
                     parsed_output['AC'] = 3 if 'conv' in base_name or 'pad' in base_name else 0
+                    parsed_output['DD'] = DATA_DEPENDENT_BLOCKS.get(base_name, 0)
+                    parsed_output['NAC'] = NON_AFFINE_CONDITIONS.get(base_name, 0)
                     results.append(parsed_output)
                 except subprocess.CalledProcessError as e:
                     print(f"Error processing {ll_file_path}: {e.stderr}")
@@ -65,7 +78,7 @@ def process_ll_files(base_dir, output_csv):
 
         # Rename columns using the column_name_map
         renamed_fieldnames = ['name'] + [
-            "BB", "Phi", "TR", "LC", "MLD", "EE", "CSE", "AC"  # Adjusted order: Phi before MLD
+            "BB", "Phi", "TR", "LC", "MLD", "EE", "CSE", "AC", "DD", "NAC"
         ]
         renamed_results = [
             {str(column_name_map.get(k, k)): v for k, v in row.items()} for row in results

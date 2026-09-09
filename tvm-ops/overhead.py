@@ -482,6 +482,8 @@ def choose_size_schedule(bench: BenchSpec, mode: str, custom_sizes: list[int] | 
         return [SMOKE_SIZE]
 
     name = bench.get_name()
+    if name == "batch_norm":
+        return SPATIAL_SIZES
     if name in LIMITED_BENCHMARKS:
         return LIMITED_SIZES
     return WIDE_SIZES
